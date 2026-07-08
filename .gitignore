@@ -1,0 +1,21 @@
+# python
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# node
+node_modules/
+dist/
+
+# secrets
+.env
+
+# private notes
+notes/
+
+# os
+.DS_Store
