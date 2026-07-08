@@ -72,3 +72,6 @@ corrected version of the anti-pattern module in the Part 2 code review.
    decision needs a defence I can speak out loud in the walkthrough.
 7. Never put secrets in code. API keys via environment variables; keep
    .env.example updated with variable names only. .env is gitignored.
+8. If one instruction or workflow file changes, update the relevant partner
+   file so the guidance stays consistent across CLAUDE.md and
+   .github/copilot-instructions.md.
