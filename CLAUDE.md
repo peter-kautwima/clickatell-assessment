@@ -47,6 +47,10 @@ clickatell-assessment/            # monorepo — one repo, one submission link
 Routes delegate, services hold all logic. This structure is deliberately the
 corrected version of the anti-pattern module in the Part 2 code review.
 
+Current scaffold note: the FastAPI entrypoint is at backend/app/main.py;
+run the backend from the repository root with
+`uvicorn backend.app.main:app --host 127.0.0.1 --port 8000`.
+
 ## Working rules (important)
 
 1. After creating or significantly changing a module, explain it to me in plain

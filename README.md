@@ -9,10 +9,10 @@ This repository contains a small FastAPI backend and a Vite React + TypeScript f
 From the repository root:
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-uvicorn backend.app:app --host 127.0.0.1 --port 8000
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements.txt
+uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 ```
 
 Open http://127.0.0.1:8000/ to confirm the API responds.
