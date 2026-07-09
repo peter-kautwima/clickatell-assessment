@@ -1,34 +1,76 @@
-# Clickatell Assessment
+# Document Q&A Service — Clickatell Technical Assessment
 
-This repository contains a small FastAPI backend and a Vite React + TypeScript frontend for the assessment.
+A small document intelligence service: upload text/markdown documents, then ask
+natural-language questions answered from their content. Classic RAG pipeline:
+chunking → local embeddings → similarity search → grounded LLM answer with sources.
 
-## Run locally
+**Stack:** FastAPI · sentence-transformers (all-MiniLM-L6-v2, runs locally) ·
+in-memory vector store · React + TypeScript (Vite)
 
-### Backend
+**Companion docs:** [DECISIONS.md](DECISIONS.md) — architecture, every design
+decision with reasoning, and Part 4 · [CODE_REVIEW.md](CODE_REVIEW.md) — Part 2
 
-From the repository root:
+---
+
+## Prerequisites
+
+- Python 3.11 or 3.12
+- Node.js 20+
+- _(Optional)_ an Anthropic API key — **without one, `/ask` runs against a
+  built-in mock** that uses the real prompt template, so the whole service is
+  runnable keyless. <!-- TODO Fri: confirm this wording matches final behaviour -->
+
+## Backend setup
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements.txt
-uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+cd backend
+python -m venv venv && source venv/bin/activate    # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env         # add ANTHROPIC_API_KEY=... for live answers (optional)
+uvicorn app.main:app --reload
 ```
 
-Open http://127.0.0.1:8000/ to confirm the API responds.
+- **First install is the slow step:** `pip install` pulls PyTorch (several
+  hundred MB) as a sentence-transformers dependency — allow a few minutes.
+  First _run_ then downloads the embedding model itself (~90 MB), one-time.
+- Interactive API docs once running: http://localhost:8000/docs
 
-### Frontend
-
-In a second terminal:
+## Frontend setup
 
 ```bash
 cd frontend
 npm install
-npm run dev -- --host 127.0.0.1 --port 5173
+npm run dev     # http://localhost:5173 — dev proxy forwards API calls to the backend
 ```
 
-Open http://127.0.0.1:5173/ to view the Vite app.
+## Running tests & coverage
 
-### Notes
+```bash
+cd backend
+pytest --cov=app --cov-report=term-missing
+```
 
-A longer project overview draft has been moved to the private notes area at notes/READ_ME.md for developer reference.
+### Coverage report
+
+<!-- TODO Sunday: paste the final coverage table here — the brief requires the
+report in the submission, and htmlcov/ is gitignored, so this IS the report. -->
+
+## API overview
+
+| Method | Path            | Purpose                                                    |
+| ------ | --------------- | ---------------------------------------------------------- |
+| POST   | /documents      | Upload + chunk + embed a document                          |
+| GET    | /documents      | List documents (id, title, chunk count, upload date)       |
+| GET    | /documents/{id} | Document metadata + chunks                                 |
+| DELETE | /documents/{id} | Remove a document and its data                             |
+| POST   | /query          | Most relevant chunks across all documents, with scores     |
+| POST   | /ask            | LLM answer grounded in retrieved chunks + the sources used |
+
+## Project structure
+
+<!-- TODO Mon: short final tree here; the reasoning lives in ARCHITECTURE.md -->
+
+## Notes for reviewers
+
+<!-- TODO Mon: anything a grader should know before running — mock behaviour,
+model download wait, how to flip live LLM on. Keep to 3–4 lines. -->
