@@ -68,7 +68,7 @@ report in the submission, and htmlcov/ is gitignored, so this IS the report. -->
 
 ## Project structure
 
-<!-- TODO Mon: short final tree here; the reasoning lives in ARCHITECTURE.md -->
+<!-- TODO Mon: short final tree here; the design reasoning lives in DECISIONS.md §§1–3 -->
 
 ## Notes for reviewers
 
