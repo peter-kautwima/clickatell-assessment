@@ -19,3 +19,6 @@ notes/
 
 # os
 .DS_Store
+
+# Claude Code local-only settings (personal permission overrides)
+.claude/settings.local.json
