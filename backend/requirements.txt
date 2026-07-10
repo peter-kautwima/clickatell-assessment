@@ -6,3 +6,4 @@ numpy               # vector math for similarity search — see D3
 sentence-transformers  # local embedding model — see D2
 pytest              # test runner (rule 4)
 pytest-cov          # coverage measurement toward the 90% bar (rule 4)
+httpx2              # silences starlette.testclient's httpx deprecation warning; test-only
