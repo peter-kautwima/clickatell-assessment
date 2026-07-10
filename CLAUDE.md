@@ -103,9 +103,10 @@ corrected version of the anti-pattern module in the Part 2 code review.
    No commented-out code. Study notes belong in notes/WALKTHROUGH_PREP.md,
    never in source. Same spelled-out-reference rule as rule 10: a docstring
    or comment citing a decision or a working rule writes "DECISIONS.md D-N
-   (name)" or "CLAUDE.md rule N" in full, never a bare "(D1)" or "(rule 9)"
-   — source code is read the same way requirements.txt is, by someone who
-   may not have the cross-reference memorized.
+   (name)" or "CLAUDE.md rule N (name)" in full — the name, not just the
+   number — never a bare "(D1)", "(rule 9)", or even "(DECISIONS.md D1)"
+   with no name attached. Source code is read the same way requirements.txt
+   is, by someone who may not have the cross-reference memorized.
 9. Concurrency: async endpoints for I/O-bound work using async clients
    (anthropic SDK / httpx); CPU-bound work (the embedder) runs via plain `def`
    endpoints so FastAPI's threadpool handles it. NEVER call blocking I/O
@@ -121,10 +122,14 @@ corrected version of the anti-pattern module in the Part 2 code review.
     into both places. requirements.txt is committed and public (a marker
     reads it); notes/ is gitignored and private (only I read it) — so any
     cross-reference in a comment must be self-explanatory to a reader who's
-    never seen this codebase: spell out "CLAUDE.md rule N" and "DECISIONS.md
-    D-N" in full rather than a bare "rule 4" or "D2", and be explicit when a
-    pointer (e.g. to notes/CRASH_COURSE.md) is a private note to me, not
-    something the reader can open. README.md gets updated in the SAME
+    never seen this codebase: spell out "CLAUDE.md rule N (name)" and
+    "DECISIONS.md D-N (name)" in full — the NAME, not just the number, e.g.
+    "DECISIONS.md D2 (Embedding model)" or "CLAUDE.md rule 9 (concurrency)"
+    — never a bare "rule 4" or "D2" AND never a number-only "DECISIONS.md
+    D2" either; a number alone still forces the reader to go look it up.
+    Be explicit when a pointer (e.g. to notes/CRASH_COURSE.md) is a private
+    note to me, not something the reader can open. README.md gets updated
+    in the SAME
     commit whenever setup, run, or test instructions actually change —
     Monday's clean-clone test runs against what's committed, not what's
     remembered.

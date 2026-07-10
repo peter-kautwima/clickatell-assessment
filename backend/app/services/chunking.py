@@ -25,7 +25,7 @@ def _split_paragraphs(text: str) -> list[str]:
 def _split_oversized_paragraph(words: list[str]) -> list[str]:
     """Slide a MAX_CHUNK_WORDS window over an oversized paragraph, stepping by
     (MAX_CHUNK_WORDS - OVERLAP_WORDS) so consecutive windows share ~OVERLAP_WORDS
-    words — the only place overlap applies (DECISIONS.md D1).
+    words — the only place overlap applies (DECISIONS.md D1 — Chunking).
     """
     step = MAX_CHUNK_WORDS - OVERLAP_WORDS
     windows = []

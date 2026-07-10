@@ -9,8 +9,8 @@ python-dotenv       # loads .env into environment variables at startup
 
 # --- feat/chunking-embeddings ---
 pydantic-settings   # BaseSettings backing config.py's env-driven LLM toggle
-numpy               # vector math for similarity search — DECISIONS.md D3
-sentence-transformers  # local embedding model — DECISIONS.md D2
+numpy               # vector math for similarity search — DECISIONS.md D3 (Vector storage & search)
+sentence-transformers  # local embedding model — DECISIONS.md D2 (Embedding model)
 pytest              # test runner (CLAUDE.md rule 4)
 pytest-cov          # coverage measurement toward the 90% bar (CLAUDE.md rule 4)
 httpx2              # silences starlette.testclient's httpx deprecation warning; test-only

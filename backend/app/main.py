@@ -17,11 +17,12 @@ async def lifespan(app: FastAPI):
     """Warm the embedding model at boot instead of on the first real request."""
     # Module-qualified call (not `from .services.embedding import _get_model`)
     # so tests' monkeypatched mock is what actually runs here, not a
-    # from-import name bound to the real function at import time (DECISIONS.md D2).
+    # from-import name bound to the real function at import time
+    # (DECISIONS.md D2 — Embedding model).
     # The wrapper is async because that's FastAPI's lifespan signature; the
     # actual load is still a plain, blocking sync call — nothing else is
-    # running yet, so there's no event loop to freeze (CLAUDE.md rule 9
-    # doesn't apply at startup).
+    # running yet, so there's no event loop to freeze (CLAUDE.md rule 9 —
+    # concurrency — doesn't apply at startup).
     embedding._get_model()
     yield
 
