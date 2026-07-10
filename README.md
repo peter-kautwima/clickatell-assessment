@@ -103,6 +103,9 @@ Get-NetTCPConnection -LocalPort 5173 | ForEach-Object { Stop-Process -Id $_.Owni
 | POST   | /query          | Most relevant chunks across all documents, with scores     |
 | POST   | /ask            | LLM answer grounded in retrieved chunks + the sources used |
 
+Ready-made upload content lives in [examples/sample.md](examples/sample.md) —
+paste it into POST /documents (e.g. via the /docs UI) to try the service.
+
 ## Project structure
 
 <!-- TODO Mon: short final tree here; the design reasoning lives in DECISIONS.md §§1–3 -->
