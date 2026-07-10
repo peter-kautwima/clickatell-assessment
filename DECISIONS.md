@@ -106,6 +106,16 @@ is the only stateful component.
   review module, and it fails the boundary case above.
 - **Deferred:** semantic chunking (embedding-based boundaries) — cost and
   complexity without assessment payoff; revisited in §4.4.
+- **Implementation addendum — word count as the token-ceiling proxy:**
+  `chunking.py::chunk_text` measures the 256 ceiling in **words**, not real
+  subword tokens, so it stays a pure function with no tokenizer/model
+  dependency (module map, §3). This is a conservative approximation, not an
+  exact guarantee: a chunk of unusually long or rare words could still exceed
+  256 real word-pieces once the model's own tokenizer runs, since some words
+  split into multiple tokens. Accepted at this scale — the alternative
+  (loading the tokenizer inside chunking.py) couples the chunker to the
+  embedding model and slows every chunking test unless also mocked, for a
+  precision gain the assessment doesn't need.
 
 ### D2 — Embedding model
 
