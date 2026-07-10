@@ -1,4 +1,4 @@
-from backend.app.services.chunking import chunk_text
+from app.services.chunking import chunk_text
 
 
 def test_chunking_returns_list():
