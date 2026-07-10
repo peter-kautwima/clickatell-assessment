@@ -1,7 +1,6 @@
-# Grouped by the branch that introduced each dependency (CLAUDE.md rule 10).
-# Full reasoning for each package lives in notes/CRASH_COURSE.md §5b — this
-# file only labels *when* it arrived, not *why*, so there's one place that
-# can drift instead of two.
+# Headers show which branch added each dep (CLAUDE.md rule 10); D-numbers
+# point to DECISIONS.md; fuller per-package notes (private, mine) are in
+# notes/CRASH_COURSE.md §5b.
 
 # --- core / pre-existing (before any feature branch) ---
 fastapi
@@ -10,10 +9,10 @@ python-dotenv       # loads .env into environment variables at startup
 
 # --- feat/chunking-embeddings ---
 pydantic-settings   # BaseSettings backing config.py's env-driven LLM toggle
-numpy               # vector math — also central to feat/storage-documents next
-sentence-transformers  # local embedding model — see D2
-pytest              # test runner (rule 4)
-pytest-cov          # coverage measurement toward the 90% bar (rule 4)
+numpy               # vector math for similarity search — DECISIONS.md D3
+sentence-transformers  # local embedding model — DECISIONS.md D2
+pytest              # test runner (CLAUDE.md rule 4)
+pytest-cov          # coverage measurement toward the 90% bar (CLAUDE.md rule 4)
 httpx2              # silences starlette.testclient's httpx deprecation warning; test-only
 
 # --- feat/storage-documents (planned — nothing new expected yet) ---

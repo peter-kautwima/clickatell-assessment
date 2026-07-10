@@ -114,9 +114,16 @@ corrected version of the anti-pattern module in the Part 2 code review.
     headers, one per branch that introduced dependencies (plus a leading
     "core / pre-existing" section) — the header says WHEN a dependency
     arrived, notes/CRASH_COURSE.md §5b says WHY; don't duplicate the why
-    into both places. README.md gets updated in the SAME commit whenever
-    setup, run, or test instructions actually change — Monday's clean-clone
-    test runs against what's committed, not what's remembered.
+    into both places. requirements.txt is committed and public (a marker
+    reads it); notes/ is gitignored and private (only I read it) — so any
+    cross-reference in a comment must be self-explanatory to a reader who's
+    never seen this codebase: spell out "CLAUDE.md rule N" and "DECISIONS.md
+    D-N" in full rather than a bare "rule 4" or "D2", and be explicit when a
+    pointer (e.g. to notes/CRASH_COURSE.md) is a private note to me, not
+    something the reader can open. README.md gets updated in the SAME
+    commit whenever setup, run, or test instructions actually change —
+    Monday's clean-clone test runs against what's committed, not what's
+    remembered.
 11. Before saying a branch is merge-ready, run this checklist explicitly —
     don't rely on memory that pieces were handled along the way:
     (a) git identity — `git log --format='%an <%ae>' main..HEAD` shows the
