@@ -125,8 +125,13 @@ is the only stateful component.
 - **Why:** runs locally and free (brief requirement); 384-dim vectors (small
   memory footprint); ~80MB one-time download; fast on CPU; and its 256-token
   cap gives a principled chunk size (D1).
-- **Loaded once at startup** — loading per request would add seconds to every
-  call; encoding runs off the event loop (D6).
+- **Loaded once, warmed at startup:** `_get_model()` is `@lru_cache`-wrapped so
+  the model object is built once and reused for the process's lifetime; a
+  FastAPI startup hook calls it once when the app boots so the ~90MB load
+  cost lands before traffic arrives, not on whichever request happens to be
+  first. `lru_cache` alone only guarantees "loaded once" — it doesn't
+  guarantee "before the first request"; the startup hook is what makes that
+  true. Encoding itself still runs off the event loop (D6).
 - **Honest trade-off:** newer embedding models score 8–16 points higher on
   MTEB. Accepted at this scale — and the service wrapper makes a model swap a
   one-line change.
