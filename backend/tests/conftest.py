@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-
 from app.services import embedding as embedding_module
 
 EMBEDDING_DIM = 384

@@ -1,7 +1,6 @@
-from fastapi.testclient import TestClient
-
 from app.main import app
 from app.services import embedding
+from fastapi.testclient import TestClient
 
 
 def test_startup_warms_the_mocked_embedding_model(mock_embedding_model):

@@ -1,5 +1,4 @@
 import numpy as np
-
 from app.services.embedding import embed_texts
 
 
