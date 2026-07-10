@@ -1,0 +1,20 @@
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+# E, F = ruff's own default (pycodestyle errors + pyflakes).
+# I = import sorting. UP = modernize syntax (e.g. List -> list). B = bugbear
+# (common bug patterns). D1xx = docstring PRESENCE only (matches CLAUDE.md
+# rule 8's "every module/function gets a short docstring") — deliberately
+# NOT selecting D2xx (docstring formatting/structure), which would push
+# toward a more elaborate convention than rule 8's stated 1-2 line brevity.
+select = ["E", "F", "I", "UP", "B", "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107"]
+ignore = [
+    "B008", # FastAPI's Depends()/File(...) in argument defaults is the framework's own idiom, not a bug
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Descriptive test names (test_paragraph_at_exactly_the_ceiling_stays_whole)
+# already document intent — requiring a docstring on top would be redundant,
+# and this is near-universal convention, not a project-specific carve-out.
+"backend/tests/**" = ["D100", "D101", "D102", "D103"]
