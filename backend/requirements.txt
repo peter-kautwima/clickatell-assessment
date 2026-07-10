@@ -1,8 +1,8 @@
 fastapi
 uvicorn[standard]
-python-dotenv
-pydantic-settings  # BaseSettings for config.py's env-driven LLM toggle
-numpy              # chunk/vector math; also sentence-transformers' own dependency
-sentence-transformers  # local embeddings (D2) — all-MiniLM-L6-v2, no paid API
+python-dotenv       # loads .env into environment variables at startup
+pydantic-settings   # BaseSettings backing config.py's env-driven LLM toggle
+numpy               # vector math for similarity search — see D3
+sentence-transformers  # local embedding model — see D2
 pytest              # test runner (rule 4)
-pytest-cov          # coverage reporting toward the 90% bar (rule 4)
+pytest-cov          # coverage measurement toward the 90% bar (rule 4)
