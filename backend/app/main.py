@@ -2,6 +2,7 @@
 startup lifespan hook only. No business logic — that lives in services/.
 """
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -60,6 +61,21 @@ def handle_document_not_found(
 def handle_empty_document(request: Request, exc: EmptyDocumentError) -> JSONResponse:
     """Semantically invalid (empty/whitespace-only) content -> 400."""
     return _error_json(400, "empty_document", str(exc))
+
+
+@app.exception_handler(Exception)
+def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
+    """Anything unhandled -> 500, logged, generic message — DECISIONS.md D5
+    (Error handling): "500 unexpected (logged)".
+    """
+    # exc_info=exc, not logger.exception(): sync handlers run in the
+    # threadpool where sys.exc_info() is empty — the exception must be
+    # passed explicitly to get the stack trace into the log. The client
+    # gets a generic message only; internals never leak into responses.
+    logging.getLogger("app").error(
+        "Unhandled error on %s %s", request.method, request.url.path, exc_info=exc
+    )
+    return _error_json(500, "internal_error", "An unexpected error occurred")
 
 
 @app.get("/")
