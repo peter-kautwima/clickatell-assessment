@@ -73,6 +73,10 @@ is the only stateful component.
 - `services/chunking.py` — pure functions; the only place split logic exists.
 - `services/embedding.py` — model singleton (loaded once at startup); encodes
   text → normalized 384-dim vectors. CPU-bound → runs off the event loop.
+- `services/documents.py` — the /documents pipeline (chunk → embed → store)
+  plus get/list/delete bookkeeping; one function per document endpoint, so
+  routes keep the one-service-call shape (§1). _Added on
+  feat/storage-documents — see the D3 addendum._
 - `services/retrieval.py` — embed question → `store.search(vector, k)`.
 - `services/answering.py` — prompt construction + LLM client behind a common
   interface (real Anthropic async client / mock).
@@ -172,6 +176,29 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
   `memory.py` for a pgvector/ChromaDB implementation (persistence + ANN
   indexing) **with no other file changing**. That swap is why the interface
   exists. See §4.1.
+- **Addendum — interface as built (feat/storage-documents, 2026-07-10;
+  flagged and approved before code):** the document-metadata endpoints
+  forced two small extensions to the method listing above. (1) `add()`
+  carries `title` — GET /documents must return id, title, chunk count,
+  upload date (the brief's exact field list), and §1 makes the store the
+  ONLY stateful component, so document metadata has to enter through
+  `add()`; the store stamps `created_at` itself at add time. (2) `get(doc_id)`
+  is a fifth method — GET /documents/{id} needs a single-document lookup
+  that can signal 404 (raises `DocumentNotFoundError`, per D5). (3) Storage
+  speaks its own `StoredDocument` dataclass rather than the Pydantic
+  schemas — routes translate — so the HTTP contract can change without
+  touching storage, preserving the one-file-swap story.
+- **Further honest limitations, same spirit as "volatile":** no locking —
+  FastAPI's threadpool can interleave plain-`def` requests, so concurrent
+  mutations could in principle race; accepted because assessment usage is
+  sequential and D6 rejects manual concurrency machinery (production
+  concurrency arrives with the database swap, which owns that problem).
+  No document-size cap beyond framework defaults — a production guard is
+  one `Field(max_length=...)` away. "Store it" (the brief's POST /documents
+  wording) is satisfied by storing chunks + metadata, not the raw original
+  text: no endpoint returns the original (GET /{id} is "metadata and its
+  chunks"; /ask returns answer + source CHUNKS), so retaining it would be
+  dead state.
 
 ### D4 — LLM integration & prompt design
 
