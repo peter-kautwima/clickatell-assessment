@@ -105,7 +105,9 @@ corrected version of the anti-pattern module in the Part 2 code review.
    or comment citing a decision or a working rule writes "DECISIONS.md D-N
    (name)" or "CLAUDE.md rule N (name)" in full — the name, not just the
    number — never a bare "(D1)", "(rule 9)", or even "(DECISIONS.md D1)"
-   with no name attached. Source code is read the same way requirements.txt
+   with no name attached. The same rule covers §-section references:
+   "DECISIONS.md §1 (System Overview)", never a bare "§1" or "§4.1".
+   Source code is read the same way requirements.txt
    is, by someone who may not have the cross-reference memorized.
 9. Concurrency: async endpoints for I/O-bound work using async clients
    (anthropic SDK / httpx); CPU-bound work (the embedder) runs via plain `def`
@@ -127,6 +129,13 @@ corrected version of the anti-pattern module in the Part 2 code review.
     "DECISIONS.md D2 (Embedding model)" or "CLAUDE.md rule 9 (concurrency)"
     — never a bare "rule 4" or "D2" AND never a number-only "DECISIONS.md
     D2" either; a number alone still forces the reader to go look it up.
+    §-section references follow the same rule ("DECISIONS.md §4.1
+    (Production readiness)", never bare "§4.1"). In fully outward-facing
+    artifacts — PR titles/descriptions, README prose — prefer plain
+    section names over any notation, and keep PR TITLES free of codenames
+    entirely: if a reader with zero repo context would have to ask what a
+    reference means, rewrite it (this gap let "D3/§1/§3" reach a PR draft
+    on 2026-07-10).
     Be explicit when a pointer (e.g. to notes/CRASH_COURSE.md) is a private
     note to me, not something the reader can open. README.md gets updated
     in the SAME
