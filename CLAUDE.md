@@ -23,7 +23,7 @@ Deadline: Tuesday 14 July 2026, 12:00 SAST. Full brief: ASSESSMENT.md in repo ro
 
 ```
 clickatell-assessment/            # monorepo — one repo, one submission link
-├── CLAUDE.md · ASSESSMENT.md · README.md · DECISIONS.md · ARCHITECTURE.md · CODE_REVIEW.md
+├── CLAUDE.md · ASSESSMENT.md · README.md · DECISIONS.md · CODE_REVIEW.md
 ├── notes/                        # gitignored, private (PLAN.md, RUBRIC.md)
 ├── backend/
 │   ├── requirements.txt · .env.example   # .env itself is gitignored
@@ -47,17 +47,14 @@ clickatell-assessment/            # monorepo — one repo, one submission link
 Routes delegate, services hold all logic. This structure is deliberately the
 corrected version of the anti-pattern module in the Part 2 code review.
 
-Current scaffold note: the FastAPI entrypoint is at backend/app/main.py;
-run the backend from the repository root with
-`uvicorn backend.app.main:app --host 127.0.0.1 --port 8000`.
-
 ## Working rules (important)
 
 1. After creating or significantly changing a module, explain it to me in plain
    English — what it does and why it's structured that way. I verify everything
    and must be able to defend every line in a verbal walkthrough.
-2. Work on short-lived feature branches (feat/…, fix/…, docs/…). Merge to main
-   with `--no-ff` once the feature works and is tested. Never squash.
+2. main is ALWAYS runnable. Work on short-lived feature branches (feat/…,
+   fix/…, docs/…). Merge to main with `--no-ff` once the feature works and is
+   tested. Never squash.
 3. Commit after each logical unit of work. Small atomic commits — the reviewers
    audit git history. Message spec (Conventional Commits):
    `type: imperative summary` (≤ ~65 chars). Types: feat, fix, test, docs,
@@ -76,6 +73,30 @@ run the backend from the repository root with
    decision needs a defence I can speak out loud in the walkthrough.
 7. Never put secrets in code. API keys via environment variables; keep
    .env.example updated with variable names only. .env is gitignored.
-8. If one instruction or workflow file changes, update the relevant partner
-   file so the guidance stays consistent across CLAUDE.md and
-   .github/copilot-instructions.md.
+8. Comments & docstrings: every module and public function gets a short
+   docstring — what it does and why it exists (1–2 lines; args/returns only
+   when non-obvious). Inline comments explain WHY (non-obvious choices,
+   constraints like the 256-token limit), never narrate WHAT the code does.
+   No commented-out code. Study notes belong in notes/WALKTHROUGH_PREP.md,
+   never in source.
+9. Concurrency: async endpoints for I/O-bound work using async clients
+   (anthropic SDK / httpx); CPU-bound work (the embedder) runs via plain `def`
+   endpoints so FastAPI's threadpool handles it. NEVER call blocking I/O
+   inside `async def`. No manual threads or multiprocessing — framework-level
+   concurrency only.
+
+## Reference docs — when to read what
+
+- **ASSESSMENT.md** — the exact requirements: the six endpoints, the 90%
+  coverage bar, the frontend's four features. Consult it before building each
+  feature and before declaring anything complete. When in doubt about a
+  requirement, read it rather than assume.
+- **DECISIONS.md** — the Architecture & Decision Record: system map + module
+  responsibilities (§§1–4), every decision with reasoning (§5), Part 4 (§6).
+  This is the design being built to — if code would deviate from §§1–5, STOP
+  and flag the deviation to me before writing it. Record new trade-offs here
+  the same day (rule 6).
+- **README.md** — keep it true as setup evolves; Monday's clean-clone test runs off it.
+- **notes/ (gitignored, still readable locally):** notes/RUBRIC.md — grading
+  weights; calibrate effort to them and say so when scoping. notes/WALKTHROUGH_PREP.md —
+  where rules 6 and 8 send spoken-defence entries and study notes.
