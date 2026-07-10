@@ -12,3 +12,10 @@ def test_startup_warms_the_mocked_embedding_model(mock_embedding_model):
         pass
 
     assert embedding._get_model() is mock_embedding_model
+
+
+def test_root_liveness_endpoint(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "message" in response.json()
