@@ -79,17 +79,21 @@ corrected version of the anti-pattern module in the Part 2 code review.
 5. Simplicity over cleverness. Everything must be explainable, not impressive.
 6. When making an architectural choice (chunk size, storage, prompt design),
    state the trade-off so I can record it in DECISIONS.md the same day, AND
-   prompt me to add a matching entry to notes/WALKTHROUGH_PREP.md — every
-   decision needs a defence I can speak out loud in the walkthrough. Back
-   every trade-off claim with the concrete evidence behind it — a number,
-   benchmark, or model-card fact — not just a qualitative label like
-   "conservative" or "minor." If a figure can be verified, verify and state
-   it rather than asserting the conclusion alone. This applies just as much
-   to trade-offs discovered mid-implementation as to ones planned upfront —
-   an in-chat explanation, a branch-log entry, or a commit message is not a
-   substitute for the DECISIONS.md line. Before calling a branch done,
-   re-scan every commit made on it for any choice-with-a-rejected-alternative
-   that isn't recorded there yet.
+   add a matching entry to notes/WALKTHROUGH_PREP.md yourself — these are
+   private notes, don't just "prompt me to add it" and leave it to me to
+   follow up (that ambiguity already let one trade-off, lifespan-vs-on_event,
+   land in DECISIONS.md but never get a WALKTHROUGH_PREP entry). Add both,
+   then tell me you did. Every decision needs a defence I can speak out loud
+   in the walkthrough. Back every trade-off claim with the concrete evidence
+   behind it — a number, benchmark, or model-card fact — not just a
+   qualitative label like "conservative" or "minor." If a figure can be
+   verified, verify and state it rather than asserting the conclusion alone.
+   This applies just as much to trade-offs discovered mid-implementation as
+   to ones planned upfront — an in-chat explanation, a branch-log entry, or a
+   commit message is not a substitute for either the DECISIONS.md line or the
+   WALKTHROUGH_PREP.md entry. Before calling a branch done, re-scan every
+   commit made on it for any choice-with-a-rejected-alternative that isn't
+   recorded in BOTH files yet.
 7. Never put secrets in code. API keys via environment variables; keep
    .env.example updated with variable names only. .env is gitignored.
 8. Comments & docstrings: every module and public function gets a short
@@ -109,6 +113,28 @@ corrected version of the anti-pattern module in the Part 2 code review.
     README.md gets updated in the SAME commit whenever setup, run, or test
     instructions actually change — Monday's clean-clone test runs against
     what's committed, not what's remembered.
+11. Before saying a branch is merge-ready, run this checklist explicitly —
+    don't rely on memory that pieces were handled along the way:
+    (a) git identity — `git log --format='%an <%ae>' main..HEAD` shows the
+    real author on every commit (rule 3);
+    (b) doc completeness — every trade-off decided OR discovered on this
+    branch has both a DECISIONS.md line and a WALKTHROUGH_PREP.md entry
+    (rule 6);
+    (c) collateral sync — requirements.txt comments and README accuracy are
+    current for what this branch actually changed (rule 10);
+    (d) warnings sweep — read pytest's own warnings summary, not just
+    pass/fail; the pre-commit ruff hook only catches style, never deprecation
+    or runtime warnings. If something's fixable at low risk (e.g. installing
+    a missing optional test dependency), fix and verify it, don't just note
+    it. If it's a real trade-off (new dependency, version pin, behavior
+    change), surface it before deciding, same as any other rule-6 trade-off;
+    (e) tell me explicitly which files this branch touched that I have no
+    way to check myself — anything IDE-only (Pylance types, an extension
+    with no CLI equivalent) — so there's a short, scoped list to eyeball
+    instead of an open-ended "check your editor." Don't propose adding a
+    type-checker or linter to close this gap without asking first — §4.4
+    already commits to minimal tooling as a defensible position; a scoped
+    file list preserves that story, a new dependency undercuts it.
 
 ## Reference docs — when to read what
 
