@@ -1,5 +1,6 @@
 """The four /documents endpoints — thin HTTP translation over
-services/documents.py, zero business logic (DECISIONS.md §1 / §3).
+services/documents.py, zero business logic (DECISIONS.md §1 System
+Overview / §3 Module Map & Responsibilities).
 """
 
 from __future__ import annotations

@@ -15,7 +15,8 @@ from .base import StoredDocument, VectorStore
 
 class InMemoryVectorStore(VectorStore):
     """Exact (brute-force) search — correct and quick at assessment scale,
-    swapped for an ANN-indexed store in production (DECISIONS.md §4.1).
+    swapped for an ANN-indexed store in production (DECISIONS.md §4.1,
+    Production readiness).
     """
 
     def __init__(self) -> None:
@@ -93,7 +94,8 @@ class InMemoryVectorStore(VectorStore):
 
 
 # Process-wide instance: the store is the service's only stateful component
-# (DECISIONS.md §1), so exactly one lives for the app's lifetime.
+# (DECISIONS.md §1, System Overview), so exactly one lives for the app's
+# lifetime.
 _store = InMemoryVectorStore()
 
 

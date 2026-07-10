@@ -43,7 +43,7 @@ class DocumentDetail(DocumentMeta):
 class DocumentListResponse(BaseModel):
     """GET /documents response — wrapped in an object rather than a bare
     array so pagination fields can be added without breaking clients
-    (DECISIONS.md §4.1 production readiness).
+    (DECISIONS.md §4.1, Production readiness).
     """
 
     documents: list[DocumentMeta]
