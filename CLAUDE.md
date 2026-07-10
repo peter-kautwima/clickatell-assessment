@@ -101,7 +101,11 @@ corrected version of the anti-pattern module in the Part 2 code review.
    when non-obvious). Inline comments explain WHY (non-obvious choices,
    constraints like the 256-token limit), never narrate WHAT the code does.
    No commented-out code. Study notes belong in notes/WALKTHROUGH_PREP.md,
-   never in source.
+   never in source. Same spelled-out-reference rule as rule 10: a docstring
+   or comment citing a decision or a working rule writes "DECISIONS.md D-N
+   (name)" or "CLAUDE.md rule N" in full, never a bare "(D1)" or "(rule 9)"
+   — source code is read the same way requirements.txt is, by someone who
+   may not have the cross-reference memorized.
 9. Concurrency: async endpoints for I/O-bound work using async clients
    (anthropic SDK / httpx); CPU-bound work (the embedder) runs via plain `def`
    endpoints so FastAPI's threadpool handles it. NEVER call blocking I/O
