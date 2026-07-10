@@ -110,9 +110,13 @@ corrected version of the anti-pattern module in the Part 2 code review.
 10. Keep collateral honest, not just DECISIONS.md/WALKTHROUGH_PREP.md: every
     requirements.txt entry gets a one-line inline comment stating why it's
     there (skip only self-evident framework glue like fastapi/uvicorn).
-    README.md gets updated in the SAME commit whenever setup, run, or test
-    instructions actually change — Monday's clean-clone test runs against
-    what's committed, not what's remembered.
+    requirements.txt is also grouped under `# --- branch name ---` section
+    headers, one per branch that introduced dependencies (plus a leading
+    "core / pre-existing" section) — the header says WHEN a dependency
+    arrived, notes/CRASH_COURSE.md §5b says WHY; don't duplicate the why
+    into both places. README.md gets updated in the SAME commit whenever
+    setup, run, or test instructions actually change — Monday's clean-clone
+    test runs against what's committed, not what's remembered.
 11. Before saying a branch is merge-ready, run this checklist explicitly —
     don't rely on memory that pieces were handled along the way:
     (a) git identity — `git log --format='%an <%ae>' main..HEAD` shows the
@@ -134,7 +138,14 @@ corrected version of the anti-pattern module in the Part 2 code review.
     instead of an open-ended "check your editor." Don't propose adding a
     type-checker or linter to close this gap without asking first — §4.4
     already commits to minimal tooling as a defensible position; a scoped
-    file list preserves that story, a new dependency undercuts it.
+    file list preserves that story, a new dependency undercuts it;
+    (f) actually boot the real app (`uvicorn app.main:app`, not just
+    TestClient — TestClient always runs under the conftest mock) and confirm
+    it reaches a running state with no exceptions, then stop it. Pytest never
+    proves the real, unmocked app boots — this is the one check that does;
+    (g) write the PR title (imperative, ≤70 chars) and description (what
+    changed, why, how it was tested) for the branch, so there's a ready-made
+    submission artifact whether or not an actual GitHub PR gets opened.
 
 ## Reference docs — when to read what
 
