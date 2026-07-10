@@ -180,3 +180,12 @@ corrected version of the anti-pattern module in the Part 2 code review.
   plain-English explanation. This is where the module explanation from rule 1
   lands so it survives past the session that produced it — different job from
   WALKTHROUGH_PREP.md, which is concept-level defence, not code narrative.
+  notes/CRASH_COURSE.md — the whole-system map, meant to read once end to
+  end; treat it differently from the two docs above: correct it when
+  something in it goes flat wrong (a stale claim, a fact a later branch
+  contradicted), but don't grow it into a changelog — no "as of branch X"
+  narration, no per-branch additions unless the addition changes the actual
+  big-picture map (a new module, a mechanism that replaced an old one). The
+  granular, per-decision, per-branch detail belongs in WALKTHROUGH_PREP.md
+  and the branch logs, which are supposed to grow every branch — CRASH_COURSE
+  isn't.
