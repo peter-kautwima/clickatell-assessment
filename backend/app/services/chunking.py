@@ -1,12 +1,11 @@
-"""Structure-aware document chunking (D1): paragraph-first, merged toward a
-target size, with overlap-windowed splitting as the fallback for oversized
-paragraphs. See DECISIONS.md D1 for the full rationale.
+"""Structure-aware document chunking, per DECISIONS.md D1 (Chunking):
+paragraph-first, merged toward a target size, with overlap-windowed
+splitting as the fallback for oversized paragraphs.
 """
 
 from __future__ import annotations
 
 import re
-from typing import List
 
 # Word count is used as a proxy for the model's 256-word-piece ceiling: chunk_text
 # stays a pure function with no tokenizer/model dependency (see module map), at the
@@ -18,15 +17,15 @@ OVERLAP_WORDS = 30
 _PARAGRAPH_SPLIT = re.compile(r"\n\s*\n+")
 
 
-def _split_paragraphs(text: str) -> List[str]:
+def _split_paragraphs(text: str) -> list[str]:
     paragraphs = _PARAGRAPH_SPLIT.split(text.strip())
     return [p.strip() for p in paragraphs if p.strip()]
 
 
-def _split_oversized_paragraph(words: List[str]) -> List[str]:
+def _split_oversized_paragraph(words: list[str]) -> list[str]:
     """Slide a MAX_CHUNK_WORDS window over an oversized paragraph, stepping by
     (MAX_CHUNK_WORDS - OVERLAP_WORDS) so consecutive windows share ~OVERLAP_WORDS
-    words — the only place overlap applies (D1).
+    words — the only place overlap applies (DECISIONS.md D1).
     """
     step = MAX_CHUNK_WORDS - OVERLAP_WORDS
     windows = []
@@ -38,7 +37,7 @@ def _split_oversized_paragraph(words: List[str]) -> List[str]:
     return windows
 
 
-def chunk_text(text: str) -> List[str]:
+def chunk_text(text: str) -> list[str]:
     """Split text into structure-aware chunks: whole paragraphs merged toward
     TARGET_WORDS, capped at MAX_CHUNK_WORDS, with overlap-windowed splitting
     for any single paragraph that alone exceeds the cap.
@@ -47,8 +46,8 @@ def chunk_text(text: str) -> List[str]:
     if not paragraphs:
         return []
 
-    chunks: List[str] = []
-    buffer_words: List[str] = []
+    chunks: list[str] = []
+    buffer_words: list[str] = []
 
     def flush() -> None:
         if buffer_words:

@@ -1,11 +1,11 @@
-"""Local embeddings via sentence-transformers (D2): one model instance shared
-across calls, encoding chunk text into unit-normalized 384-dim vectors.
+"""Local embeddings via sentence-transformers, per DECISIONS.md D2 (Embedding
+model): one model instance shared across calls, encoding chunk text into
+unit-normalized 384-dim vectors.
 """
 
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import List
 
 from sentence_transformers import SentenceTransformer
 
@@ -18,7 +18,7 @@ def _get_model() -> SentenceTransformer:
     return SentenceTransformer(MODEL_NAME)
 
 
-def embed_texts(texts: List[str]) -> List[List[float]]:
+def embed_texts(texts: list[str]) -> list[list[float]]:
     """Encode texts into unit-normalized embedding vectors, preserving order."""
     if not texts:
         return []
