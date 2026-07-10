@@ -31,7 +31,10 @@ cp .env.example .env         # add ANTHROPIC_API_KEY=... for live answers (optio
 
 - **First install is the slow step:** `pip install` pulls PyTorch (several
   hundred MB) as a sentence-transformers dependency — allow a few minutes.
-  First _run_ then downloads the embedding model itself (~90 MB), one-time.
+  The embedding model itself (~90 MB) downloads the first time you **start**
+  the server (not the first request) — the app warms it during startup, so
+  expect a pause before "Application startup complete" appears the first
+  time; one-time cost, cached after that.
 - Interactive API docs once running: http://localhost:8000/docs
 
 ### Run the backend
