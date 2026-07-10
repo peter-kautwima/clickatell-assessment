@@ -127,11 +127,18 @@ is the only stateful component.
   cap gives a principled chunk size (D1).
 - **Loaded once, warmed at startup:** `_get_model()` is `@lru_cache`-wrapped so
   the model object is built once and reused for the process's lifetime; a
-  FastAPI startup hook calls it once when the app boots so the ~90MB load
+  FastAPI `lifespan` hook calls it once when the app boots so the ~90MB load
   cost lands before traffic arrives, not on whichever request happens to be
   first. `lru_cache` alone only guarantees "loaded once" — it doesn't
   guarantee "before the first request"; the startup hook is what makes that
   true. Encoding itself still runs off the event loop (D6).
+- **`lifespan` over `@app.on_event("startup")`:** the simpler `on_event` API
+  was tried first but rejected — it's deprecated on the installed FastAPI
+  version (0.139.0) and emits a warning on every test run. `lifespan`'s
+  wrapper is an async generator (FastAPI's required signature for it), but
+  the actual work inside — `embedding._get_model()` — is still one plain,
+  blocking, synchronous call; nothing else is running during startup, so
+  there's no event loop to freeze and D6's rule doesn't come into play here.
 - **Honest trade-off:** newer embedding models score 8–16 points higher on
   MTEB. Accepted at this scale — and the service wrapper makes a model swap a
   one-line change.
