@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 
-from backend.app.routes.documents import router as documents_router
-from backend.app.routes.query import router as query_router
+# Use package-relative imports so the app can be run from the `backend/` folder
+from .routes.documents import router as documents_router
+from .routes.query import router as query_router
 
 app = FastAPI(title="Clickatell Assessment API")
 

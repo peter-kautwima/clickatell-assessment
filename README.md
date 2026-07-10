@@ -18,7 +18,7 @@ decision with reasoning, and Part 4 · [CODE_REVIEW.md](CODE_REVIEW.md) — Part
 - Node.js 20+
 - _(Optional)_ an Anthropic API key — **without one, `/ask` runs against a
   built-in mock** that uses the real prompt template, so the whole service is
-  runnable keyless. <!-- TODO Fri: confirm this wording matches final behaviour -->
+  runnable keyless.
 
 ## Backend setup
 
@@ -27,13 +27,33 @@ cd backend
 python -m venv venv && source venv/bin/activate    # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env         # add ANTHROPIC_API_KEY=... for live answers (optional)
-uvicorn app.main:app --reload
 ```
 
 - **First install is the slow step:** `pip install` pulls PyTorch (several
   hundred MB) as a sentence-transformers dependency — allow a few minutes.
   First _run_ then downloads the embedding model itself (~90 MB), one-time.
 - Interactive API docs once running: http://localhost:8000/docs
+
+### Run the backend
+
+Two equivalent ways to start it — pick whichever fits your terminal setup.
+
+Option A — from the repo root:
+
+```bash
+source backend/venv/bin/activate      # Windows (PowerShell): backend\venv\Scripts\Activate.ps1
+uvicorn backend.app.main:app --reload
+```
+
+Option B — from `backend/`:
+
+```bash
+cd backend
+source venv/bin/activate              # Windows (PowerShell): venv\Scripts\Activate.ps1
+uvicorn app.main:app --reload
+```
+
+If port 8000 is busy, add `--port 8001`.
 
 ## Frontend setup
 
@@ -54,6 +74,20 @@ pytest --cov=app --cov-report=term-missing
 
 <!-- TODO Sunday: paste the final coverage table here — the brief requires the
 report in the submission, and htmlcov/ is gitignored, so this IS the report. -->
+
+## Stopping the servers
+
+```bash
+lsof -t -i :8000 | xargs -r kill    # backend
+lsof -t -i :5173 | xargs -r kill    # frontend
+```
+
+Windows (PowerShell):
+
+```powershell
+Get-NetTCPConnection -LocalPort 8000 | ForEach-Object { Stop-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue }
+Get-NetTCPConnection -LocalPort 5173 | ForEach-Object { Stop-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue }
+```
 
 ## API overview
 
