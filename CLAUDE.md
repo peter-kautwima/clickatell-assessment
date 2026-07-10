@@ -152,7 +152,13 @@ corrected version of the anti-pattern module in the Part 2 code review.
     proves the real, unmocked app boots — this is the one check that does;
     (g) write the PR title (imperative, ≤70 chars) and description (what
     changed, why, how it was tested) for the branch, so there's a ready-made
-    submission artifact whether or not an actual GitHub PR gets opened.
+    submission artifact whether or not an actual GitHub PR gets opened. The
+    description may ONLY reference committed, public files (DECISIONS.md,
+    README.md, code) — never notes/WALKTHROUGH_PREP.md or
+    notes/branch-logs/, which are gitignored and invisible to any actual
+    reader of a PR; "ask if you want a copy" makes no sense when there's no
+    one on the other end who could ask (same public/private distinction as
+    rule 10).
 
 ## Reference docs — when to read what
 
