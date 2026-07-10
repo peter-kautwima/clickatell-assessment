@@ -15,7 +15,7 @@ pytest              # test runner (CLAUDE.md rule 4)
 pytest-cov          # coverage measurement toward the 90% bar (CLAUDE.md rule 4)
 httpx2              # silences starlette.testclient's httpx deprecation warning; test-only
 
-# --- feat/storage-documents (planned — nothing new expected yet) ---
+# --- feat/storage-documents (built — added no dependencies) ---
 
 # --- feat/ask-llm (planned) ---
 # anthropic         # official SDK for the live LLM call

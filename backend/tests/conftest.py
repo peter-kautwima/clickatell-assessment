@@ -1,6 +1,9 @@
 import numpy as np
 import pytest
+from app.main import app
 from app.services import embedding as embedding_module
+from app.storage.memory import get_store
+from fastapi.testclient import TestClient
 
 EMBEDDING_DIM = 384
 
@@ -32,6 +35,24 @@ def mock_embedding_model(monkeypatch):
     fake = _FakeModel()
     monkeypatch.setattr(embedding_module, "_get_model", lambda: fake)
     return fake
+
+
+@pytest.fixture(autouse=True)
+def reset_store():
+    """Empty the process-wide store after each test, via its PUBLIC interface
+    only — no reaching into private matrix/dict internals.
+    """
+    yield
+    store = get_store()
+    for document in store.list():
+        store.delete(document.id)
+
+
+@pytest.fixture
+def client(mock_embedding_model) -> TestClient:
+    """App client with lifespan running — warm-up hits the mocked model."""
+    with TestClient(app) as test_client:
+        yield test_client
 
 
 @pytest.fixture

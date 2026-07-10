@@ -73,6 +73,10 @@ is the only stateful component.
 - `services/chunking.py` — pure functions; the only place split logic exists.
 - `services/embedding.py` — model singleton (loaded once at startup); encodes
   text → normalized 384-dim vectors. CPU-bound → runs off the event loop.
+- `services/documents.py` — the /documents pipeline (chunk → embed → store)
+  plus get/list/delete bookkeeping; one function per document endpoint, so
+  routes keep the one-service-call shape (§1). _Added on
+  feat/storage-documents — see the D3 addendum._
 - `services/retrieval.py` — embed question → `store.search(vector, k)`.
 - `services/answering.py` — prompt construction + LLM client behind a common
   interface (real Anthropic async client / mock).
@@ -172,6 +176,40 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
   `memory.py` for a pgvector/ChromaDB implementation (persistence + ANN
   indexing) **with no other file changing**. That swap is why the interface
   exists. See §4.1.
+- **Addendum — interface as built (feat/storage-documents, 2026-07-10;
+  flagged and approved before code):** the document-metadata endpoints
+  forced two small extensions to the method listing above. (1) `add()`
+  carries `title` — GET /documents must return id, title, chunk count,
+  upload date (the brief's exact field list), and §1 makes the store the
+  ONLY stateful component, so document metadata has to enter through
+  `add()`; the store stamps `uploaded_at` itself at add time (field named
+  for the brief's "upload date" wording — a clearer-naming choice, not a
+  brief mandate; the brief never dictates a JSON key). (2) `get(doc_id)`
+  is a fifth method — GET /documents/{id} needs a single-document lookup
+  that can signal 404 (raises `DocumentNotFoundError`, per D5). (3) Storage
+  speaks its own `StoredDocument` dataclass rather than the Pydantic
+  schemas — routes translate — so the HTTP contract can change without
+  touching storage, preserving the one-file-swap story.
+- **API-shape choices on the document endpoints (same branch):** ids are
+  `uuid4().hex` — no shared state, nothing to synchronize (rejected: a
+  global counter, the Part 2 review module's approach — racy and guessable).
+  GET /documents wraps the array in `{"documents": [...]}` so pagination
+  fields can be added without breaking clients (rejected: a bare JSON
+  array; §4.1 makes pagination a known production step). POST returns
+  **201** + the metadata (§1's "return document id + metadata"); DELETE
+  returns **204** with no body (rejected: 200 + a status message — there is
+  nothing meaningful to say about a deleted resource).
+- **Further honest limitations, same spirit as "volatile":** no locking —
+  FastAPI's threadpool can interleave plain-`def` requests, so concurrent
+  mutations could in principle race; accepted because assessment usage is
+  sequential and D6 rejects manual concurrency machinery (production
+  concurrency arrives with the database swap, which owns that problem).
+  No document-size cap beyond framework defaults — a production guard is
+  one `Field(max_length=...)` away. "Store it" (the brief's POST /documents
+  wording) is satisfied by storing chunks + metadata, not the raw original
+  text: no endpoint returns the original (GET /{id} is "metadata and its
+  chunks"; /ask returns answer + source CHUNKS), so retaining it would be
+  dead state.
 
 ### D4 — LLM integration & prompt design
 
@@ -211,6 +249,12 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
 - **Status map:** 422 validation (Pydantic, automatic) · 404 unknown document ·
   400 semantically invalid input (e.g. empty content) · 502 upstream LLM
   failure · 500 unexpected (logged).
+- **The 500 leg is a registered catch-all handler** (built on
+  feat/storage-documents, after an audit caught it missing): any unhandled
+  exception logs with its full stack trace (`exc_info`) and returns the same
+  JSON shape with a GENERIC message — exception details never leak into
+  responses. Without it, Starlette's default returned plain text, breaking
+  the one-error-shape claim.
 - **Why:** central handlers keep routes thin and decouple services from the
   transport layer — the corrected inverse of the review module's bare
   KeyErrors and silent crashes.
