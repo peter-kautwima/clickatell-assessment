@@ -305,7 +305,11 @@ primary source, not the assistant. Second, I briefly ran two coding assistants
 side by side and paid for it in drift — duplicate virtual environments, a
 misplaced entrypoint — which taught me the one-driver rule: a single agent
 under a single instruction file, and everything produced outside it gets
-audited before it merges.
+audited before it merges. I also kept the tooling itself deliberately
+minimal — one agent, one instruction file, a ruff pre-commit hook, and
+nothing more (no subagents, no parallel generation) — because parallel output
+outpaces exactly the review capacity this role tests, and the assessment
+grades the artifact, not the tooling around it.
 
 **The hardest part.** Python's concurrency model, coming from Node. The
 async/await words are identical, but the failure mode is different: one
