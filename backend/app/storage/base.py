@@ -44,26 +44,21 @@ class VectorStore(ABC):
         """Store a document's chunks and their (already unit-normalized,
         per DECISIONS.md D2 — Embedding model) vectors; return its record.
         """
-        raise NotImplementedError
 
     @abstractmethod
     def search(self, query_vector: list[float], k: int) -> list[tuple[str, str, float]]:
         """Top-k most similar chunks across all documents, best first, as
         (chunk_text, doc_id, score) tuples.
         """
-        raise NotImplementedError
 
     @abstractmethod
     def get(self, doc_id: str) -> StoredDocument:
         """Return one document's record; raise DocumentNotFoundError if absent."""
-        raise NotImplementedError
 
     @abstractmethod
     def delete(self, doc_id: str) -> None:
         """Remove a document and its vectors; raise DocumentNotFoundError if absent."""
-        raise NotImplementedError
 
     @abstractmethod
     def list(self) -> list[StoredDocument]:
         """All stored documents, in upload order."""
-        raise NotImplementedError
