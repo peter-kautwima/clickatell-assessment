@@ -24,7 +24,8 @@ Deadline: Tuesday 14 July 2026, 12:00 SAST. Full brief: ASSESSMENT.md in repo ro
 ```
 clickatell-assessment/            # monorepo — one repo, one submission link
 ├── CLAUDE.md · ASSESSMENT.md · README.md · DECISIONS.md · CODE_REVIEW.md
-├── notes/                        # gitignored, private (PLAN.md, RUBRIC.md)
+├── notes/                        # gitignored, private (PLAN.md, RUBRIC.md,
+│                                 # WALKTHROUGH_PREP.md, branch-logs/)
 ├── backend/
 │   ├── requirements.txt · .env.example   # .env itself is gitignored
 │   ├── app/
@@ -50,8 +51,12 @@ corrected version of the anti-pattern module in the Part 2 code review.
 ## Working rules (important)
 
 1. After creating or significantly changing a module, explain it to me in plain
-   English — what it does and why it's structured that way. I verify everything
-   and must be able to defend every line in a verbal walkthrough.
+   English — what it does and why it's structured that way — AND capture that
+   explanation, plus the final snippet for anything non-obvious, in
+   notes/branch-logs/<branch-name>.md before committing, alongside the build
+   order for that branch and why it went in that order. I verify everything
+   and must be able to defend every line in a verbal walkthrough — that
+   explanation cannot live only in this chat.
 2. main is ALWAYS runnable. Work on short-lived feature branches (feat/…,
    fix/…, docs/…). Merge to main with `--no-ff` once the feature works and is
    tested. Never squash.
@@ -70,7 +75,11 @@ corrected version of the anti-pattern module in the Part 2 code review.
 6. When making an architectural choice (chunk size, storage, prompt design),
    state the trade-off so I can record it in DECISIONS.md the same day, AND
    prompt me to add a matching entry to notes/WALKTHROUGH_PREP.md — every
-   decision needs a defence I can speak out loud in the walkthrough.
+   decision needs a defence I can speak out loud in the walkthrough. Back
+   every trade-off claim with the concrete evidence behind it — a number,
+   benchmark, or model-card fact — not just a qualitative label like
+   "conservative" or "minor." If a figure can be verified, verify and state
+   it rather than asserting the conclusion alone.
 7. Never put secrets in code. API keys via environment variables; keep
    .env.example updated with variable names only. .env is gitignored.
 8. Comments & docstrings: every module and public function gets a short
@@ -100,3 +109,8 @@ corrected version of the anti-pattern module in the Part 2 code review.
 - **notes/ (gitignored, still readable locally):** notes/RUBRIC.md — grading
   weights; calibrate effort to them and say so when scoping. notes/WALKTHROUGH_PREP.md —
   where rules 6 and 8 send spoken-defence entries and study notes.
+  notes/branch-logs/<branch-name>.md — one file per feature branch (rule 1):
+  build order + why, paired with the final non-trivial snippets and their
+  plain-English explanation. This is where the module explanation from rule 1
+  lands so it survives past the session that produced it — different job from
+  WALKTHROUGH_PREP.md, which is concept-level defence, not code narrative.
