@@ -19,7 +19,7 @@ Deadline: Tuesday 14 July 2026, 12:00 SAST. Full brief: ASSESSMENT.md in repo ro
 - Pydantic models for ALL request/response bodies. Proper HTTP status codes and
   graceful error handling throughout.
 
-## Structure — target tree (services/ split provisional until ARCHITECTURE.md is locked)
+## Structure — target tree (locked; ARCHITECTURE.md was merged into DECISIONS.md during the Thursday design session and no longer exists)
 
 ```
 clickatell-assessment/            # monorepo — one repo, one submission link
