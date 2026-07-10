@@ -188,6 +188,15 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
   speaks its own `StoredDocument` dataclass rather than the Pydantic
   schemas — routes translate — so the HTTP contract can change without
   touching storage, preserving the one-file-swap story.
+- **API-shape choices on the document endpoints (same branch):** ids are
+  `uuid4().hex` — no shared state, nothing to synchronize (rejected: a
+  global counter, the Part 2 review module's approach — racy and guessable).
+  GET /documents wraps the array in `{"documents": [...]}` so pagination
+  fields can be added without breaking clients (rejected: a bare JSON
+  array; §4.1 makes pagination a known production step). POST returns
+  **201** + the metadata (§1's "return document id + metadata"); DELETE
+  returns **204** with no body (rejected: 200 + a status message — there is
+  nothing meaningful to say about a deleted resource).
 - **Further honest limitations, same spirit as "volatile":** no locking —
   FastAPI's threadpool can interleave plain-`def` requests, so concurrent
   mutations could in principle race; accepted because assessment usage is
