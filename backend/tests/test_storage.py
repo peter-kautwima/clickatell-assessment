@@ -19,8 +19,8 @@ def test_add_returns_record_with_stamped_metadata(store):
     assert doc.title == "My title"
     assert doc.chunk_count == 2
     assert doc.chunks == ["chunk a", "chunk b"]
-    # created_at is stamped by the store itself, timezone-aware UTC.
-    assert doc.created_at.tzinfo == UTC
+    # uploaded_at is stamped by the store itself, timezone-aware UTC.
+    assert doc.uploaded_at.tzinfo == UTC
 
 
 def test_list_returns_documents_in_upload_order(store):

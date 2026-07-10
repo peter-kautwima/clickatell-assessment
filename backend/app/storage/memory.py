@@ -45,7 +45,7 @@ class InMemoryVectorStore(VectorStore):
         document = StoredDocument(
             id=doc_id,
             title=title,
-            created_at=datetime.now(UTC),
+            uploaded_at=datetime.now(UTC),
             chunks=list(chunks),
         )
         new_rows = np.asarray(vectors, dtype=float)

@@ -28,7 +28,10 @@ class DocumentMeta(BaseModel):
     id: str
     title: str
     chunk_count: int
-    created_at: datetime
+    # "uploaded_at" over the more conventional "created_at": our own
+    # clearer-naming choice (the brief says "upload date" in prose but
+    # never dictates a JSON key).
+    uploaded_at: datetime
 
 
 class DocumentDetail(DocumentMeta):

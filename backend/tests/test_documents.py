@@ -18,7 +18,7 @@ def test_upload_returns_201_with_the_briefs_metadata_fields(client):
     assert body["id"]
     assert body["title"] == "Test Doc"
     assert body["chunk_count"] == 1
-    assert body["created_at"]
+    assert body["uploaded_at"]
 
 
 def test_upload_chunk_count_reflects_real_chunking(client):

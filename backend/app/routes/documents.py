@@ -39,7 +39,7 @@ def _to_meta(document: StoredDocument) -> DocumentMeta:
         id=document.id,
         title=document.title,
         chunk_count=document.chunk_count,
-        created_at=document.created_at,
+        uploaded_at=document.uploaded_at,
     )
 
 
@@ -64,20 +64,23 @@ def list_documents(store: StoreDep) -> DocumentListResponse:
     return DocumentListResponse(documents=[_to_meta(d) for d in documents])
 
 
-@router.get("/documents/{doc_id}", responses=_NOT_FOUND)
-def get_document(doc_id: str, store: StoreDep) -> DocumentDetail:
+# Path param is named `id` (shadowing the builtin inside these two tiny
+# functions) so /docs renders exactly /documents/{id} — the literal path
+# template in ASSESSMENT.md's endpoint table.
+@router.get("/documents/{id}", responses=_NOT_FOUND)
+def get_document(id: str, store: StoreDep) -> DocumentDetail:
     """One document's metadata plus its stored chunks."""
-    document = documents_service.get_document(doc_id, store)
+    document = documents_service.get_document(id, store)
     return DocumentDetail(
         id=document.id,
         title=document.title,
         chunk_count=document.chunk_count,
-        created_at=document.created_at,
+        uploaded_at=document.uploaded_at,
         chunks=document.chunks,
     )
 
 
-@router.delete("/documents/{doc_id}", status_code=204, responses=_NOT_FOUND)
-def delete_document(doc_id: str, store: StoreDep) -> None:
+@router.delete("/documents/{id}", status_code=204, responses=_NOT_FOUND)
+def delete_document(id: str, store: StoreDep) -> None:
     """Remove a document and its vectors; 204 with no body on success."""
-    documents_service.delete_document(doc_id, store)
+    documents_service.delete_document(id, store)

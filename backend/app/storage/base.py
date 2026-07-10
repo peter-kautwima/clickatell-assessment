@@ -19,7 +19,7 @@ class StoredDocument:
 
     id: str
     title: str
-    created_at: datetime
+    uploaded_at: datetime
     chunks: list[str]
 
     @property
@@ -30,7 +30,7 @@ class StoredDocument:
 
 class VectorStore(ABC):
     """DECISIONS.md D3 interface (plus its addendum: title on add(), get()
-    as a fifth method, created_at stamped by the store at add time).
+    as a fifth method, uploaded_at stamped by the store at add time).
     """
 
     @abstractmethod
