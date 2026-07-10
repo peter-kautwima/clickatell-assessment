@@ -150,11 +150,13 @@ is the only stateful component.
 doc_id, score)]` · `delete(doc_id)` · `list()`.
 - **Implementation:** one numpy matrix of unit-normalized vectors + a parallel
   metadata list linking each row to its chunk text and document.
-- **Vectors are normalized to unit length at storage time**, so cosine
-  similarity reduces to the raw dot product — scoring every chunk is a single
-  `matrix @ query_vector` operation. This is the production fast path
-  (FAISS-style), implemented by hand: it demonstrates the similarity math
-  rather than importing it.
+- **Vectors arrive already normalized to unit length** — `embedding.py`'s
+  `embed_texts()` normalizes at embed time (D2), not storage; by the time
+  storage sees a vector it's already unit-length, so `add()` stores it as-is
+  and never re-normalizes. That's what makes cosine similarity reduce to the
+  raw dot product — scoring every chunk is a single `matrix @ query_vector`
+  operation. This is the production fast path (FAISS-style), implemented by
+  hand: it demonstrates the similarity math rather than importing it.
 - **Search style:** exact (brute-force) — correct and quick at assessment
   scale.
 - **Rejected for the build:** ChromaDB/FAISS — the brief calls in-memory
@@ -314,9 +316,9 @@ statement of intent in my own words, module and tests written together, and a
 plain-English explanation gate before each commit — main always runnable. What
 I learned along the way was RAG end-to-end at defend-out-loud depth: why chunk
 size is model physics rather than preference, how embedding geometry turns
-paraphrase into proximity, why normalizing at storage time makes the dot
-product a legitimate fast path, and how grounding is an instruction-design
-problem before it is a model problem.
+paraphrase into proximity, why normalizing at embed time makes the dot
+product a legitimate fast path at storage, and how grounding is an
+instruction-design problem before it is a model problem.
 
 **Where AI helped most, and where my own understanding was required.** AI
 carried the throughput: scaffolding, endpoint and test boilerplate, research
