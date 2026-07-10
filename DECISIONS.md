@@ -54,6 +54,10 @@ is the only stateful component.
 | Production structure, not one file (tech req 7)      | module map, §3                                          |
 | RESTful API design + useful docs (eval: API design)  | resource-oriented routes + FastAPI auto-docs at `/docs` |
 | Testing, 90% + report included (eval: Testing)       | `backend/tests/` + **D7**; coverage table in README     |
+| Service architecture (eval)                          | same as tech req 7 — module map, §3                     |
+| Code quality (eval)                                  | CLAUDE.md rules 5 (simplicity) + 8 (docstrings/comments) + the ruff pre-commit gate — no single D-number, enforced by rule + tooling |
+| Error handling (eval)                                | same as tech req 6 — `errors.py` + **D5**               |
+| AI/RAG reasoning (eval)                              | chunking (**D1**) + embeddings/similarity (**D2**, **D3**) + prompt design (**D4**) together |
 | Setup instructions, runnable clean clone (checklist) | `README.md`                                             |
 | Frontend's 4 features (Part 3)                       | 3 components + typed `api/client.ts`                    |
 | Part 4 written answers (Part 4)                      | **§§4.1–4.4** below                                     |
