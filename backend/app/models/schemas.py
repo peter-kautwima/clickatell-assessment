@@ -49,6 +49,35 @@ class DocumentListResponse(BaseModel):
     documents: list[DocumentMeta]
 
 
+class QueryRequest(BaseModel):
+    """POST /query request body: question plus bounded result count."""
+
+    # question is deliberately NOT length-constrained here, same pattern as
+    # DocumentCreate.content: empty/whitespace-only text is a semantic error
+    # owned by the service (HTTP 400 via EmptyQuestionError), not a
+    # schema-shape error (HTTP 422) — DECISIONS.md D5 (Error handling)
+    # separates those two cases.
+    question: str
+    # Default mirrors retrieval.DEFAULT_QUERY_K; the 1–10 bounds live only
+    # here, at the HTTP edge — DECISIONS.md D3 (Vector storage & search),
+    # query endpoint choices.
+    k: int = Field(default=5, ge=1, le=10)
+
+
+class QueryResult(BaseModel):
+    """One retrieved source chunk and its cosine-similarity score."""
+
+    document_id: str
+    chunk: str
+    score: float
+
+
+class QueryResponse(BaseModel):
+    """POST /query response: ranked source chunks, empty when nothing is stored."""
+
+    results: list[QueryResult] = Field(default_factory=list)
+
+
 class ErrorDetail(BaseModel):
     """Machine-readable code + human-readable message for one error."""
 
