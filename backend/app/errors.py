@@ -23,3 +23,11 @@ class EmptyDocumentError(Exception):
     def __init__(self) -> None:
         """Fixed message — there is no per-instance detail to carry."""
         super().__init__("Document content is empty or contains no text")
+
+
+class EmptyQuestionError(Exception):
+    """Raised when a present question is only whitespace (HTTP 400)."""
+
+    def __init__(self) -> None:
+        """Fixed message — there is no per-instance detail to carry."""
+        super().__init__("Question is empty or contains no text")
