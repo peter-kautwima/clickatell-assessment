@@ -182,7 +182,9 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
   carries `title` — GET /documents must return id, title, chunk count,
   upload date (the brief's exact field list), and §1 makes the store the
   ONLY stateful component, so document metadata has to enter through
-  `add()`; the store stamps `created_at` itself at add time. (2) `get(doc_id)`
+  `add()`; the store stamps `uploaded_at` itself at add time (field named
+  for the brief's "upload date" wording — a clearer-naming choice, not a
+  brief mandate; the brief never dictates a JSON key). (2) `get(doc_id)`
   is a fifth method — GET /documents/{id} needs a single-document lookup
   that can signal 404 (raises `DocumentNotFoundError`, per D5). (3) Storage
   speaks its own `StoredDocument` dataclass rather than the Pydantic
@@ -247,6 +249,12 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
 - **Status map:** 422 validation (Pydantic, automatic) · 404 unknown document ·
   400 semantically invalid input (e.g. empty content) · 502 upstream LLM
   failure · 500 unexpected (logged).
+- **The 500 leg is a registered catch-all handler** (built on
+  feat/storage-documents, after an audit caught it missing): any unhandled
+  exception logs with its full stack trace (`exc_info`) and returns the same
+  JSON shape with a GENERIC message — exception details never leak into
+  responses. Without it, Starlette's default returned plain text, breaking
+  the one-error-shape claim.
 - **Why:** central handlers keep routes thin and decouple services from the
   transport layer — the corrected inverse of the review module's bare
   KeyErrors and silent crashes.
