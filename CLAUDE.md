@@ -60,8 +60,13 @@ corrected version of the anti-pattern module in the Part 2 code review.
 2. main is ALWAYS runnable. Work on short-lived feature branches (feat/…,
    fix/…, docs/…). Merge to main with `--no-ff` once the feature works and is
    tested. Never squash.
-3. Commit after each logical unit of work. Small atomic commits — the reviewers
-   audit git history. Message spec (Conventional Commits):
+3. Before the first commit of any session, verify `git config user.name` /
+   `git config user.email` resolve to the real author identity, not a stale
+   local override — this has silently mis-attributed an entire branch's
+   commits before (WALKTHROUGH_PREP.md §12, and it recurred once already).
+   If wrong, stop and tell me before committing anything; I fix git config
+   myself, you never touch it. Commit after each logical unit of work. Small
+   atomic commits — the reviewers audit git history. Message spec (Conventional Commits):
    `type: imperative summary` (≤ ~65 chars). Types: feat, fix, test, docs,
    refactor, chore. Add a body line for the WHY only when it isn't obvious from
    the summary. One logical change per commit — if the message needs "and",
@@ -79,7 +84,12 @@ corrected version of the anti-pattern module in the Part 2 code review.
    every trade-off claim with the concrete evidence behind it — a number,
    benchmark, or model-card fact — not just a qualitative label like
    "conservative" or "minor." If a figure can be verified, verify and state
-   it rather than asserting the conclusion alone.
+   it rather than asserting the conclusion alone. This applies just as much
+   to trade-offs discovered mid-implementation as to ones planned upfront —
+   an in-chat explanation, a branch-log entry, or a commit message is not a
+   substitute for the DECISIONS.md line. Before calling a branch done,
+   re-scan every commit made on it for any choice-with-a-rejected-alternative
+   that isn't recorded there yet.
 7. Never put secrets in code. API keys via environment variables; keep
    .env.example updated with variable names only. .env is gitignored.
 8. Comments & docstrings: every module and public function gets a short
@@ -93,6 +103,12 @@ corrected version of the anti-pattern module in the Part 2 code review.
    endpoints so FastAPI's threadpool handles it. NEVER call blocking I/O
    inside `async def`. No manual threads or multiprocessing — framework-level
    concurrency only.
+10. Keep collateral honest, not just DECISIONS.md/WALKTHROUGH_PREP.md: every
+    requirements.txt entry gets a one-line inline comment stating why it's
+    there (skip only self-evident framework glue like fastapi/uvicorn).
+    README.md gets updated in the SAME commit whenever setup, run, or test
+    instructions actually change — Monday's clean-clone test runs against
+    what's committed, not what's remembered.
 
 ## Reference docs — when to read what
 
