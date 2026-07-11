@@ -259,6 +259,42 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
   keyless graders run everything; tests are deterministic and fast; upstream
   failure has a defined degradation path — API errors (timeout, 5xx) raise
   `LLMServiceError` → HTTP 502 with an informative message.
+- **Addendum (2026-07-11, feat/ask-llm) — model choice: `claude-haiku-4-5`,
+  verified against Anthropic's live model docs the same day.**
+  - Candidates ruled out on checkable facts: Claude 3.5 Sonnet was retired
+    2025-10-28 and 404s today. The newer tiers (Fable 5, Opus 4.7+, Sonnet 5)
+    reject an explicit `temperature` with a 400 — sampling parameters were
+    removed from those models' APIs — which would break this decision's own
+    `temperature=0` clause. Sonnet 4.5 still accepts it but is a
+    previous-generation pick with no capability gain for this task.
+  - Haiku 4.5 is therefore the only current-generation model on which both
+    clauses above (the model string AND `temperature=0`) stay literally true
+    in code — at $1/$5 per MTok vs $3/$15 (Sonnet 5) and $10/$50 (Fable 5),
+    with the lowest latency of any tier, for a task squarely inside its
+    competence: extractive Q&A over at most ten chunks of ≤256 words.
+  - The graded path never sees the live model — keyless graders get the
+    deterministic mock, and the test suite mocks the SDK — so the live-model
+    choice is about grounding quality, latency, and cost, not test
+    determinism. Honest nuance: `temperature=0` is greedy decoding, not a
+    token-identity guarantee; suite reproducibility comes from the mock
+    design, not the sampling parameter.
+  - Request envelope as built: `max_tokens=1024` (ample for a grounded
+    answer, hard per-call cost cap); 30s timeout with 1 retry (the SDK
+    retries timeouts, so worst-case wall clock ≈ 1 minute before the 502);
+    the API key passed to the client explicitly (pydantic-settings reads
+    `.env` without exporting to the process environment, so the SDK's own
+    env-var lookup would find nothing); the client constructed per request
+    (nothing connects until the call fires, and a cached client would pin
+    its connection pool to whichever event loop built it first).
+  - Upstream refusal (`stop_reason == "refusal"`) is answered in-band with a
+    polite message, not a 502 — a refusal is a valid upstream response, not
+    an upstream failure. A response with no text at all (e.g. `max_tokens`
+    exhausted before any text) IS a failure → `LLMServiceError` → 502.
+  - Considered and rejected: Anthropic's server-side fallback beta
+    (auto-retrying refusals on a second model) — an extra beta header plus a
+    second billed model is unjustifiable complexity for benign document Q&A;
+    and pytest-asyncio — all async code is exercised through the test
+    client, keeping tooling minimal (§4.4).
 
 ### D5 — Error handling
 
@@ -298,6 +334,44 @@ similarity math; API: TestClient across happy/edge/error paths per endpoint);
 how and why the embedding model is mocked in conftest (determinism + no 90MB
 download in CI); the FINAL coverage percentage; where the report lives
 (README, pasted table). -->
+
+### D8 — /ask similarity threshold & source filtering
+
+- **Decision:** every retrieved chunk scoring below `MIN_SIMILARITY = 0.15`
+  (cosine) is dropped from BOTH the prompt context and the returned
+  `sources`; if nothing survives, /ask answers "no relevant content found"
+  with an empty sources list WITHOUT calling the LLM — §4.3's (Guardrails &
+  safety) retrieval-score short-circuit, now concrete in code.
+- **The value is measured, not guessed.** Calibration (2026-07-11) drove the
+  real pipeline — `chunk_text()` → `embed_texts()` → `store.search()` — on
+  `examples/sample.md` plus two off-topic control documents:
+
+  | kind | question | top score |
+  |---|---|---|
+  | relevant | How long does the trial period last before I have to pay? | 0.453 |
+  | relevant | What happens to my data if I cancel my subscription? | 0.528 |
+  | relevant | Is my information encrypted? | **0.227** |
+  | relevant | Can I get my money back after being charged? | 0.383 |
+  | adjacent | Does Northwind Cloud offer a mobile app? | 0.510 |
+  | adjacent | Which programming languages does the platform support? | 0.146 |
+  | unrelated | What is the capital of France? | 0.048 |
+  | unrelated | How do I teach my dog to sit? | 0.052 |
+
+  0.15 sits ~3× above the strongest unrelated score (0.052) with ~50% margin
+  under the weakest true positive (0.227). Short questions against ~180-word
+  chunks compress cosine similarity — a plausible-sounding floor of 0.3+
+  would have wrongly refused the encryption question, and 0.7 would refuse
+  every question in the table.
+- **Why sources go empty on the short-circuit:** a chunk below the evidence
+  bar must not be presented as grounding — returning it would imply support
+  the answer does not have.
+- **Two layers, deliberately:** the threshold catches OFF-TOPIC noise
+  cheaply and absolutely (a model cannot hallucinate an answer it was never
+  asked to generate); the prompt's refusal rule handles
+  ON-TOPIC-but-unanswerable questions. The measured 0.510 for "Does
+  Northwind Cloud offer a mobile app?" — a service the document never
+  mentions — proves no threshold can separate that class; only the model,
+  reading the context, can decline it.
 
 ---
 
