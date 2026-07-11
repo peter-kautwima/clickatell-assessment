@@ -1,8 +1,11 @@
-"""Grounded answering for POST /ask: the three-part prompt template shared by
-every LLM client — DECISIONS.md D4 (LLM integration & prompt design).
+"""Grounded answering for POST /ask: one prompt template and one LLM-client
+interface with mock and live implementations behind the env-key toggle —
+DECISIONS.md D4 (LLM integration & prompt design).
 """
 
 from __future__ import annotations
+
+from abc import ABC, abstractmethod
 
 # Part 1 of D4's three parts: role + rules. Rule 1 is the prompt-level refusal
 # guardrail (DECISIONS.md §4.3, Guardrails & safety). Rule 3 exists because
@@ -35,3 +38,48 @@ def build_prompt(
     )
     user_prompt = f"<context>\n{chunk_tags}\n</context>\n\nQuestion: {question}"
     return SYSTEM_PROMPT, user_prompt
+
+
+MOCK_ANSWER_PREFIX = "[MOCK ANSWER — no ANTHROPIC_API_KEY set] "
+# Long enough to show WHICH chunk grounded the canned reply, short enough to
+# stay readable in the Q&A panel.
+_MOCK_EXCERPT_CHARS = 200
+
+
+class LLMClient(ABC):
+    """One interface, two implementations (mock / live Anthropic), so the
+    /ask pipeline is identical with or without an API key — DECISIONS.md D4
+    (LLM integration & prompt design).
+    """
+
+    @abstractmethod
+    async def answer(self, question: str, matches: list[tuple[str, str, float]]) -> str:
+        """Return an answer grounded in the given (chunk, doc_id, score) matches."""
+
+
+class MockLLMClient(LLMClient):
+    """Keyless fallback: builds the SAME template as the live client, then
+    returns a labeled, deterministic answer derived from the top chunk —
+    ASSESSMENT.md tech req 4 accepts a mock that demonstrates the real
+    prompt structure and context injection.
+    """
+
+    async def answer(self, question: str, matches: list[tuple[str, str, float]]) -> str:
+        """Exercise the real template, then answer from the top chunk."""
+        # Built and discarded on purpose: the keyless path must run the exact
+        # prompt-construction code a live call would send, not just canned text.
+        build_prompt(question, matches)
+        top_chunk, top_doc_id, _score = matches[0]
+        excerpt = top_chunk[:_MOCK_EXCERPT_CHARS]
+        return (
+            f"{MOCK_ANSWER_PREFIX}Based on chunk 1 (document {top_doc_id}): {excerpt}"
+        )
+
+
+def _get_client() -> LLMClient:
+    """The DECISIONS.md D4 (LLM integration & prompt design) toggle seam: one
+    place decides which client serves a request. Callers go through it
+    module-qualified so tests can monkeypatch a spy in, mirroring the
+    embedding._get_model pattern.
+    """
+    return MockLLMClient()
