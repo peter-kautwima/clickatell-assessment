@@ -31,3 +31,16 @@ class EmptyQuestionError(Exception):
     def __init__(self) -> None:
         """Fixed message — there is no per-instance detail to carry."""
         super().__init__("Question is empty or contains no text")
+
+
+class LLMServiceError(Exception):
+    """Raised when the upstream LLM call fails — connection error, timeout, or
+    a response with no usable answer text (HTTP 502).
+    """
+
+    def __init__(self, detail: str) -> None:
+        """Carry the upstream failure detail — unlike the fixed-message Empty*
+        errors — so the handler's 502 message is informative, per DECISIONS.md
+        D4 (LLM integration & prompt design).
+        """
+        super().__init__(f"LLM service error: {detail}")

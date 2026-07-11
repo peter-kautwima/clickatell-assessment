@@ -9,7 +9,12 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 # Use package-relative imports so the app can be run from the `backend/` folder
-from .errors import DocumentNotFoundError, EmptyDocumentError, EmptyQuestionError
+from .errors import (
+    DocumentNotFoundError,
+    EmptyDocumentError,
+    EmptyQuestionError,
+    LLMServiceError,
+)
 from .models.schemas import ErrorDetail, ErrorResponse
 from .routes.documents import router as documents_router
 from .routes.query import router as query_router
@@ -67,6 +72,16 @@ def handle_empty_document(request: Request, exc: EmptyDocumentError) -> JSONResp
 def handle_empty_question(request: Request, exc: EmptyQuestionError) -> JSONResponse:
     """Semantically invalid (empty/whitespace-only) question -> 400."""
     return _error_json(400, "empty_question", str(exc))
+
+
+@app.exception_handler(LLMServiceError)
+def handle_llm_service_error(request: Request, exc: LLMServiceError) -> JSONResponse:
+    """Upstream LLM failure -> 502, per DECISIONS.md D5 (Error handling).
+
+    Registered explicitly: without this, the catch-all Exception handler below
+    would swallow it as a 500 and mislabel an upstream outage as our bug.
+    """
+    return _error_json(502, "llm_service_error", str(exc))
 
 
 @app.exception_handler(Exception)
