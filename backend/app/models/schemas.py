@@ -78,6 +78,32 @@ class QueryResponse(BaseModel):
     results: list[QueryResult] = Field(default_factory=list)
 
 
+class AskRequest(BaseModel):
+    """POST /ask request body: question plus bounded retrieval count."""
+
+    # question is deliberately NOT length-constrained here, same pattern as
+    # QueryRequest.question: empty/whitespace-only text is a semantic error
+    # owned by the service (HTTP 400 via EmptyQuestionError), not a schema-shape
+    # error (HTTP 422) — DECISIONS.md D5 (Error handling) separates those cases.
+    question: str
+    # Same 1–10 bounds and default as QueryRequest.k: /ask retrieves before it
+    # answers, so it reuses /query's retrieval envelope — DECISIONS.md D3
+    # (Vector storage & search), query endpoint choices.
+    k: int = Field(default=5, ge=1, le=10)
+
+
+class AskResponse(BaseModel):
+    """POST /ask response: the grounded answer plus the source chunks used.
+
+    Reuses QueryResult so a source carries document_id, chunk, and score —
+    ASSESSMENT.md Part 1 ("return both the answer and the source chunks used").
+    sources is always a list, never null: empty on the guardrail short-circuit.
+    """
+
+    answer: str
+    sources: list[QueryResult] = Field(default_factory=list)
+
+
 class ErrorDetail(BaseModel):
     """Machine-readable code + human-readable message for one error."""
 
