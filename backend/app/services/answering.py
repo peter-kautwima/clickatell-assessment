@@ -7,8 +7,12 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+import anthropic
+from anthropic import AsyncAnthropic
 from fastapi.concurrency import run_in_threadpool
 
+from ..config import settings
+from ..errors import LLMServiceError
 from ..storage.base import VectorStore
 from .retrieval import DEFAULT_QUERY_K, retrieve_similar
 
@@ -44,6 +48,21 @@ def build_prompt(
     user_prompt = f"<context>\n{chunk_tags}\n</context>\n\nQuestion: {question}"
     return SYSTEM_PROMPT, user_prompt
 
+
+# Live-call envelope. The DECISIONS.md D4 addendum (Model choice) holds the
+# full defence; the model string was verified current against Anthropic's
+# model docs on 2026-07-11.
+ANTHROPIC_MODEL = "claude-haiku-4-5"
+# ~750 words — ample for a grounded answer over at most ten short chunks,
+# and a hard per-call cost cap (D4: "max_tokens bounded").
+MAX_ANSWER_TOKENS = 1024
+LLM_TIMEOUT_SECONDS = 30.0  # per attempt; generous for the fastest model tier
+# The SDK retries timeouts too, so worst-case wall-clock is roughly
+# timeout x attempts: 1 retry caps a dead upstream at ~1 minute before the
+# 502, instead of ~1.5 with the SDK default of 2.
+LLM_MAX_RETRIES = 1
+
+REFUSAL_MSG = "The language model declined to answer this question."
 
 MOCK_ANSWER_PREFIX = "[MOCK ANSWER — no ANTHROPIC_API_KEY set] "
 # Long enough to show WHICH chunk grounded the canned reply, short enough to
@@ -81,12 +100,62 @@ class MockLLMClient(LLMClient):
         )
 
 
-def _get_client() -> LLMClient:
-    """The DECISIONS.md D4 (LLM integration & prompt design) toggle seam: one
-    place decides which client serves a request. Callers go through it
-    module-qualified so tests can monkeypatch a spy in, mirroring the
-    embedding._get_model pattern.
+class AnthropicLLMClient(LLMClient):
+    """Live client behind the env toggle: the async Anthropic SDK with the
+    shared template — CLAUDE.md rule 9 (concurrency): the I/O-bound LLM call
+    uses the async client so the event loop keeps serving while we wait.
     """
+
+    async def answer(self, question: str, matches: list[tuple[str, str, float]]) -> str:
+        """Send the three-part prompt live and normalize the reply."""
+        system, user = build_prompt(question, matches)
+        # Key passed explicitly: pydantic-settings reads .env itself without
+        # exporting to os.environ, so the SDK's own env lookup finds nothing.
+        # Constructed per request, deliberately uncached: nothing connects
+        # until the call fires, and a cached client would pin its connection
+        # pool to whichever event loop built it first.
+        client = AsyncAnthropic(
+            api_key=settings.anthropic_api_key,
+            timeout=LLM_TIMEOUT_SECONDS,
+            max_retries=LLM_MAX_RETRIES,
+        )
+        try:
+            response = await client.messages.create(
+                model=ANTHROPIC_MODEL,
+                max_tokens=MAX_ANSWER_TOKENS,
+                temperature=0,  # greedy decoding — DECISIONS.md D4
+                system=system,
+                messages=[{"role": "user", "content": user}],
+            )
+        except anthropic.APIError as exc:
+            # Base of APIStatusError AND APIConnectionError/APITimeoutError:
+            # every SDK failure funnels into the one domain error -> 502.
+            raise LLMServiceError(str(exc)) from exc
+
+        # Refusal is checked BEFORE content: a refused response can carry an
+        # empty content list, and it is a valid upstream answer, not an
+        # upstream failure — so a polite message, never a 502.
+        if response.stop_reason == "refusal":
+            return REFUSAL_MSG
+        # Attribute access on typed blocks, index-free: skips any non-text
+        # block and yields "" (not an IndexError) on empty content.
+        text = "".join(block.text for block in response.content if block.type == "text")
+        if not text:
+            # e.g. max_tokens exhausted before any text: an unusable reply.
+            raise LLMServiceError(
+                f"model returned no answer text (stop_reason={response.stop_reason})"
+            )
+        return text
+
+
+def _get_client() -> LLMClient:
+    """The DECISIONS.md D4 (LLM integration & prompt design) toggle: key
+    present -> live Anthropic call, absent -> deterministic mock, same
+    interface either way. Callers go through it module-qualified so tests
+    can monkeypatch a spy in, mirroring the embedding._get_model pattern.
+    """
+    if settings.anthropic_api_key:
+        return AnthropicLLMClient()
     return MockLLMClient()
 
 
