@@ -210,6 +210,26 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
   text: no endpoint returns the original (GET /{id} is "metadata and its
   chunks"; /ask returns answer + source CHUNKS), so retaining it would be
   dead state.
+- **Query endpoint choices (feat/query-search, 2026-07-11):** `/query`
+  defaults to `k=5` and lets clients override `k` from 1 to 10. Five chunks
+  is the small default because D1's target is ~180 words per chunk, so a
+  normal response returns about **900 words** of evidence — enough breadth
+  for a user to see competing matches without flooding the API response or
+  the next branch's `/ask` prompt. The maximum of 10 is the escape hatch for
+  broader questions while still bounding context to about **1,800 target
+  words** (and at D1's 256-token hard ceiling, no more than **2,560 chunk
+  tokens** before prompt overhead). Rejected alternatives: fixed `k` (too
+  rigid for broad questions) and unbounded client `k` (turns one request
+  into an accidental prompt/response-size blow-up). Empty/whitespace
+  questions are **400** via D5, not 422: the `question` field is present and
+  type-valid, but semantically unusable — the same line as empty document
+  content. A `question` length cap was also considered and rejected: /query
+  is a repeatedly-hittable endpoint, so a per-field cap guards only the
+  single-huge-request case and does nothing against repeated modest-sized
+  abuse — the real control is rate limiting, already named a production
+  step in §4.1 — and the embedding model silently truncates input past 256
+  tokens anyway (D1), so an oversized question degrades gracefully instead
+  of failing. Same posture as the no-document-size-cap line above.
 
 ### D4 — LLM integration & prompt design
 
@@ -243,12 +263,12 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
 ### D5 — Error handling
 
 - **Decision:** custom exceptions in `errors.py` (`DocumentNotFoundError`,
-  `EmptyDocumentError`, `LLMServiceError`), raised in services; handlers
-  registered once in `main.py`; one JSON error shape
+  `EmptyDocumentError`, `EmptyQuestionError`, `LLMServiceError`), raised in
+  services; handlers registered once in `main.py`; one JSON error shape
   `{"error": {"code", "message"}}`.
 - **Status map:** 422 validation (Pydantic, automatic) · 404 unknown document ·
-  400 semantically invalid input (e.g. empty content) · 502 upstream LLM
-  failure · 500 unexpected (logged).
+  400 semantically invalid input (e.g. empty content or question) · 502
+  upstream LLM failure · 500 unexpected (logged).
 - **The 500 leg is a registered catch-all handler** (built on
   feat/storage-documents, after an audit caught it missing): any unhandled
   exception logs with its full stack trace (`exc_info`) and returns the same

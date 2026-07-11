@@ -9,7 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 # Use package-relative imports so the app can be run from the `backend/` folder
-from .errors import DocumentNotFoundError, EmptyDocumentError
+from .errors import DocumentNotFoundError, EmptyDocumentError, EmptyQuestionError
 from .models.schemas import ErrorDetail, ErrorResponse
 from .routes.documents import router as documents_router
 from .routes.query import router as query_router
@@ -61,6 +61,12 @@ def handle_document_not_found(
 def handle_empty_document(request: Request, exc: EmptyDocumentError) -> JSONResponse:
     """Semantically invalid (empty/whitespace-only) content -> 400."""
     return _error_json(400, "empty_document", str(exc))
+
+
+@app.exception_handler(EmptyQuestionError)
+def handle_empty_question(request: Request, exc: EmptyQuestionError) -> JSONResponse:
+    """Semantically invalid (empty/whitespace-only) question -> 400."""
+    return _error_json(400, "empty_question", str(exc))
 
 
 @app.exception_handler(Exception)
