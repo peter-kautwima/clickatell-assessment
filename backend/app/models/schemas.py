@@ -78,6 +78,29 @@ class QueryResponse(BaseModel):
     results: list[QueryResult] = Field(default_factory=list)
 
 
+class AskRequest(BaseModel):
+    """POST /ask request body: question plus bounded source-chunk count."""
+
+    # Same deliberate no-length-constraint pattern as QueryRequest.question:
+    # a present-but-whitespace-only question is a semantic error (HTTP 400
+    # via EmptyQuestionError), not a schema-shape error (HTTP 422) —
+    # DECISIONS.md D5 (Error handling).
+    question: str
+    k: int = Field(default=5, ge=1, le=10)
+
+
+class AskResponse(BaseModel):
+    """POST /ask response: the grounded answer plus the source chunks used.
+
+    sources is always a list — empty when the short-circuit answered without
+    consulting the LLM (DECISIONS.md §4.3, Guardrails & safety) — so clients
+    never need a null check.
+    """
+
+    answer: str
+    sources: list[QueryResult] = Field(default_factory=list)
+
+
 class ErrorDetail(BaseModel):
     """Machine-readable code + human-readable message for one error."""
 

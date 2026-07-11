@@ -7,6 +7,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from fastapi.concurrency import run_in_threadpool
+
+from ..storage.base import VectorStore
+from .retrieval import DEFAULT_QUERY_K, retrieve_similar
+
 # Part 1 of D4's three parts: role + rules. Rule 1 is the prompt-level refusal
 # guardrail (DECISIONS.md §4.3, Guardrails & safety). Rule 3 exists because
 # document text is user-supplied and could try to smuggle instructions into
@@ -83,3 +88,28 @@ def _get_client() -> LLMClient:
     embedding._get_model pattern.
     """
     return MockLLMClient()
+
+
+NO_RELEVANT_CONTENT_MSG = (
+    "No relevant content found: none of the stored documents matches this "
+    "question closely enough to attempt an answer."
+)
+
+
+async def answer_question(
+    question: str, store: VectorStore, k: int = DEFAULT_QUERY_K
+) -> tuple[str, list[tuple[str, str, float]]]:
+    """Run the /ask pipeline: retrieve, guard, answer.
+
+    Returns (answer, sources), sources keeping the store's
+    (chunk, doc_id, score) shape for the route to serialize.
+    """
+    # The embedder inside retrieve_similar is CPU-bound and this function is
+    # awaited from an async endpoint, so it must not run on the event loop
+    # (CLAUDE.md rule 9 — concurrency). run_in_threadpool dispatches it to
+    # the same AnyIO pool FastAPI already uses for plain-def endpoints.
+    matches = await run_in_threadpool(retrieve_similar, question, store, k)
+    if not matches:
+        return NO_RELEVANT_CONTENT_MSG, []
+    answer = await _get_client().answer(question, matches)
+    return answer, matches
