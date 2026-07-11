@@ -325,6 +325,15 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
   the seeded review bug. Manual threading at this scale adds GIL nuance and
   race conditions on the in-memory store for no gain. At production scale the
   answer is a worker queue, not threads (§4.1).
+- **Addendum (2026-07-11, feat/ask-llm):** /ask is the async endpoint this
+  decision promised, with one refinement inside it: the pipeline's FIRST
+  step is the CPU-bound embedder, so the answering service dispatches it
+  through starlette's `run_in_threadpool` — the same threadpool FastAPI
+  gives plain `def` endpoints — instead of calling it inline, which would
+  block the event loop (the exact bug this decision exists to avoid). Same
+  principle, still framework-level only. Rejected alternative: a plain-def
+  /ask with the synchronous SDK client — that would have surrendered the
+  async LLM await that motivates this decision.
 
 ### D7 — Testing approach
 
