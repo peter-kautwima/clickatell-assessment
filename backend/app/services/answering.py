@@ -95,6 +95,15 @@ NO_RELEVANT_CONTENT_MSG = (
     "question closely enough to attempt an answer."
 )
 
+# Cosine floor below which a retrieved chunk is noise, not evidence.
+# Calibrated 2026-07-11 through this exact pipeline (chunk_text ->
+# embed_texts -> store.search) on examples/sample.md plus off-topic
+# controls: weakest RELEVANT top-score 0.227, strongest UNRELATED top-score
+# 0.052 — 0.15 sits ~3x above the noise ceiling with ~50% margin under the
+# weakest true positive. DECISIONS.md D8 (/ask similarity threshold &
+# source filtering) holds the full measured table.
+MIN_SIMILARITY = 0.15
+
 
 async def answer_question(
     question: str, store: VectorStore, k: int = DEFAULT_QUERY_K
@@ -109,7 +118,13 @@ async def answer_question(
     # (CLAUDE.md rule 9 — concurrency). run_in_threadpool dispatches it to
     # the same AnyIO pool FastAPI already uses for plain-def endpoints.
     matches = await run_in_threadpool(retrieve_similar, question, store, k)
-    if not matches:
+    # Below-floor chunks are dropped from BOTH the prompt and the returned
+    # sources: a chunk that isn't evidence must not steer the model or be
+    # presented as grounding. Nothing left -> answer WITHOUT calling any LLM,
+    # the DECISIONS.md §4.3 (Guardrails & safety) short-circuit — a model
+    # cannot hallucinate an answer it was never asked to generate.
+    kept = [m for m in matches if m[2] >= MIN_SIMILARITY]
+    if not kept:
         return NO_RELEVANT_CONTENT_MSG, []
-    answer = await _get_client().answer(question, matches)
-    return answer, matches
+    answer = await _get_client().answer(question, kept)
+    return answer, kept
