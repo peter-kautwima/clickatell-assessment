@@ -6,7 +6,15 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from ..models.schemas import ErrorResponse, QueryRequest, QueryResponse, QueryResult
+from ..models.schemas import (
+    AskRequest,
+    AskResponse,
+    ErrorResponse,
+    QueryRequest,
+    QueryResponse,
+    QueryResult,
+)
+from ..services import answering as answering_service
 from ..services import retrieval as retrieval_service
 from ..storage.base import VectorStore
 from ..storage.memory import get_store
@@ -17,6 +25,11 @@ StoreDep = Annotated[VectorStore, Depends(get_store)]
 
 _EMPTY_QUESTION = {
     400: {"model": ErrorResponse, "description": "Empty or whitespace-only question"}
+}
+# /ask can also fail upstream at the LLM — surface the D5 502 in the auto-docs.
+_ASK_ERRORS = {
+    **_EMPTY_QUESTION,
+    502: {"model": ErrorResponse, "description": "Upstream LLM call failed"},
 }
 
 
@@ -29,4 +42,23 @@ def query_documents(payload: QueryRequest, store: StoreDep) -> QueryResponse:
             QueryResult(document_id=doc_id, chunk=chunk, score=score)
             for chunk, doc_id, score in matches
         ]
+    )
+
+
+# The service's one async endpoint (CLAUDE.md rule 9 — concurrency): the I/O-bound
+# LLM call is awaited on the event loop, while the CPU-bound embed step inside
+# answer_question is dispatched to the threadpool. Zero logic here — delegate and
+# serialize, per DECISIONS.md §1 (System Overview).
+@router.post("/ask", responses=_ASK_ERRORS)
+async def ask_question(payload: AskRequest, store: StoreDep) -> AskResponse:
+    """Answer a question grounded in retrieved chunks; return answer + sources."""
+    answer, sources = await answering_service.answer_question(
+        payload.question, store, payload.k
+    )
+    return AskResponse(
+        answer=answer,
+        sources=[
+            QueryResult(document_id=doc_id, chunk=chunk, score=score)
+            for chunk, doc_id, score in sources
+        ],
     )
