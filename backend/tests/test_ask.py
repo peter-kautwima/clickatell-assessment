@@ -1,7 +1,13 @@
-"""POST /ask tests: prompt-template shape, mock determinism, and the
-threshold short-circuit — all keyless (conftest pins the API key to None).
+"""POST /ask tests: prompt-template shape, mock determinism, the threshold
+short-circuit, and the live toggle with the SDK mocked — zero network, and
+keyless by default (conftest pins the API key to None).
 """
 
+from types import SimpleNamespace
+
+import anthropic
+import httpx
+from app.config import settings
 from app.services import answering
 
 
@@ -117,3 +123,110 @@ def test_ask_missing_question_returns_422(client):
 def test_ask_rejects_k_outside_bounds(client):
     assert client.post("/ask", json={"question": "q", "k": 0}).status_code == 422
     assert client.post("/ask", json={"question": "q", "k": 11}).status_code == 422
+
+
+def _enable_live_path(monkeypatch):
+    """Give the toggle a fake key AFTER the autouse keyless fixture ran."""
+    monkeypatch.setattr(settings, "anthropic_api_key", "test-key-123")
+
+
+def _install_fake_anthropic(monkeypatch, *, response=None, error=None):
+    """Swap answering.AsyncAnthropic for an attribute-faithful fake.
+
+    Fakes are SimpleNamespace/attribute-based on purpose: the real SDK
+    returns typed objects, so dict-style access in app code would pass a
+    dict-based fake and crash live. Returns the dict where constructor and
+    request kwargs get recorded for assertions.
+    """
+    recorded = {}
+
+    class _FakeAsyncAnthropic:
+        def __init__(self, **kwargs):
+            recorded["constructor"] = kwargs
+
+            async def create(**request_kwargs):
+                recorded["request"] = request_kwargs
+                if error is not None:
+                    raise error
+                return response
+
+            self.messages = SimpleNamespace(create=create)
+
+    monkeypatch.setattr(answering, "AsyncAnthropic", _FakeAsyncAnthropic)
+    return recorded
+
+
+def test_get_client_toggles_on_api_key(monkeypatch):
+    assert isinstance(answering._get_client(), answering.MockLLMClient)
+    monkeypatch.setattr(settings, "anthropic_api_key", "some-key")
+    assert isinstance(answering._get_client(), answering.AnthropicLLMClient)
+
+
+def test_live_path_sends_bounded_haiku_request(client, monkeypatch):
+    _enable_live_path(monkeypatch)
+    response = SimpleNamespace(
+        stop_reason="end_turn",
+        content=[
+            # a non-text block first: extraction must skip it, not crash
+            SimpleNamespace(type="web_search_tool_result", text=None),
+            SimpleNamespace(type="text", text="Grounded answer."),
+        ],
+    )
+    recorded = _install_fake_anthropic(monkeypatch, response=response)
+    _upload(client, "Doc", "Some stored text about the topic.")
+    body = client.post("/ask", json={"question": "the topic"}).json()
+
+    assert body["answer"] == "Grounded answer."
+    assert recorded["constructor"] == {
+        "api_key": "test-key-123",
+        "timeout": answering.LLM_TIMEOUT_SECONDS,
+        "max_retries": answering.LLM_MAX_RETRIES,
+    }
+    request = recorded["request"]
+    assert request["model"] == "claude-haiku-4-5"
+    assert request["max_tokens"] == answering.MAX_ANSWER_TOKENS
+    assert request["temperature"] == 0
+    assert request["system"] == answering.SYSTEM_PROMPT
+    assert "<context>" in request["messages"][0]["content"]
+    # no thinking parameter: off by default on this model, none requested
+    assert "thinking" not in request
+
+
+def test_live_refusal_returns_graceful_message_not_502(client, monkeypatch):
+    _enable_live_path(monkeypatch)
+    # a refusal may carry NO content blocks at all — must not be indexed
+    _install_fake_anthropic(
+        monkeypatch, response=SimpleNamespace(stop_reason="refusal", content=[])
+    )
+    _upload(client, "Doc", "Some stored text.")
+    response = client.post("/ask", json={"question": "stored text"})
+    assert response.status_code == 200
+    assert response.json()["answer"] == answering.REFUSAL_MSG
+
+
+def test_live_empty_completion_maps_to_502(client, monkeypatch):
+    _enable_live_path(monkeypatch)
+    # max_tokens exhausted before any text block was produced
+    _install_fake_anthropic(
+        monkeypatch, response=SimpleNamespace(stop_reason="max_tokens", content=[])
+    )
+    _upload(client, "Doc", "Some stored text.")
+    response = client.post("/ask", json={"question": "stored text"})
+    assert response.status_code == 502
+    body = response.json()
+    assert body["error"]["code"] == "llm_service_error"
+    assert "max_tokens" in body["error"]["message"]
+
+
+def test_live_sdk_error_maps_to_502_with_d5_shape(client, monkeypatch):
+    _enable_live_path(monkeypatch)
+    _install_fake_anthropic(
+        monkeypatch,
+        error=anthropic.APIConnectionError(
+            request=httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+        ),
+    )
+    _upload(client, "Doc", "Some stored text.")
+    response = client.post("/ask", json={"question": "stored text"})
+    assert response.status_code == 502
+    assert response.json()["error"]["code"] == "llm_service_error"
