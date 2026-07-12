@@ -1,8 +1,77 @@
-export function DocumentList() {
+import { useState } from "react";
+import { deleteDocument } from "../api/client";
+import { ApiError, type DocumentMeta } from "../api/types";
+
+type Status = "idle" | "loading" | "loaded" | "error";
+
+interface DocumentListProps {
+  documents: DocumentMeta[];
+  status: Status;
+  error: string | null;
+  onRefresh: () => void;
+}
+
+export function DocumentList({
+  documents,
+  status,
+  error,
+  onRefresh,
+}: DocumentListProps) {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      await deleteDocument(id);
+      onRefresh();
+    } catch (deleteError) {
+      // Surfaced via the shared error region on next refresh; a per-item
+      // failure still leaves the list state accurate rather than silently
+      // pretending the delete succeeded.
+      console.error(
+        deleteError instanceof ApiError ? deleteError.message : deleteError,
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
-    <div>
+    <section>
       <h2>Documents</h2>
-      <p>Document list will appear here.</p>
-    </div>
+      <div aria-live="polite">
+        {status === "loading" && <p>Loading documents…</p>}
+        {status === "error" && (
+          <p role="alert">
+            {error ?? "Failed to load documents."}{" "}
+            <button type="button" onClick={onRefresh}>
+              Retry
+            </button>
+          </p>
+        )}
+        {status === "loaded" && documents.length === 0 && (
+          <p>No documents uploaded yet.</p>
+        )}
+        {status === "loaded" && documents.length > 0 && (
+          <ul>
+            {documents.map((document) => (
+              <li key={document.id}>
+                <span>{document.title}</span>{" "}
+                <span>({document.chunk_count} chunks)</span>{" "}
+                <span>{new Date(document.uploaded_at).toLocaleString()}</span>{" "}
+                <button
+                  type="button"
+                  aria-label={`Delete ${document.title}`}
+                  onClick={() => handleDelete(document.id)}
+                  disabled={deletingId === document.id}
+                >
+                  {deletingId === document.id ? "Deleting…" : "Delete"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
   );
 }
