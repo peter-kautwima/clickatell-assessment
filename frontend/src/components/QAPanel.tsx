@@ -16,7 +16,16 @@ function relevanceLabel(score: number): string {
   return score >= 0.45 ? "Highly relevant" : "Relevant";
 }
 
-export function QAPanel() {
+interface QAPanelProps {
+  /** Q&A is pointless against an empty store, so the form stays disabled
+   * until at least one document exists. */
+  hasDocuments: boolean;
+  /** True once the document list has actually loaded — the "upload first"
+   * hint waits for it, so it never flashes while the list is still fetching. */
+  documentsLoaded: boolean;
+}
+
+export function QAPanel({ hasDocuments, documentsLoaded }: QAPanelProps) {
   const [question, setQuestion] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [answer, setAnswer] = useState<AskResponse | null>(null);
@@ -49,15 +58,21 @@ export function QAPanel() {
             type="text"
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
+            disabled={!hasDocuments}
             required
           />
           <button
             type="submit"
-            disabled={question.trim() === "" || status === "loading"}
+            disabled={
+              !hasDocuments || question.trim() === "" || status === "loading"
+            }
           >
             {status === "loading" ? "Asking…" : "Ask"}
           </button>
         </div>
+        {documentsLoaded && !hasDocuments && (
+          <p className="hint">Upload a document to start asking questions.</p>
+        )}
       </form>
 
       {status === "error" && (

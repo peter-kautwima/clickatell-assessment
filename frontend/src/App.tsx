@@ -43,7 +43,10 @@ function App() {
           onRefresh={refreshDocuments}
         />
       </div>
-      <QAPanel />
+      <QAPanel
+        hasDocuments={documents.length > 0}
+        documentsLoaded={documentsStatus === "loaded"}
+      />
     </main>
   );
 }
