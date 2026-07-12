@@ -52,9 +52,13 @@ function App() {
     <main>
       <h1>Document Q&amp;A</h1>
       {backendDown && (
-        <p role="alert">
-          {BACKEND_UNREACHABLE_MESSAGE}{" "}
-          <button type="button" onClick={refreshDocuments}>
+        <p role="alert" className="banner">
+          {BACKEND_UNREACHABLE_MESSAGE}
+          <button
+            type="button"
+            onClick={refreshDocuments}
+            disabled={documentsStatus === "loading"}
+          >
             Retry
           </button>
         </p>

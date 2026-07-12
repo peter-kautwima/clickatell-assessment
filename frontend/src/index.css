@@ -215,6 +215,22 @@ textarea:disabled {
   min-height: 2.6rem;
 }
 
+/* Backend-unreachable banner: message left, retry pinned to the far right,
+   mirroring the Ask row's input-left/button-right shape. */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.banner button {
+  margin-left: auto;
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 4px 16px;
+  font-size: 0.9rem;
+}
+
 
 textarea {
   min-height: 130px;
