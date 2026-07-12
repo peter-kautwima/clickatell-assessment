@@ -59,7 +59,7 @@ function App() {
             onClick={refreshDocuments}
             disabled={documentsStatus === "loading"}
           >
-            Retry
+            {documentsStatus === "loading" ? "Retrying…" : "Retry"}
           </button>
         </p>
       )}
@@ -70,7 +70,11 @@ function App() {
         />
         <DocumentList
           documents={documents}
-          status={documentsStatus}
+          // While the banner is up, a refresh is a REACHABILITY retry — its
+          // in-flight signal lives on the banner button ("Retrying…"), so the
+          // list must not flash "Loading documents…" as if documents were
+          // known to exist.
+          status={backendDown ? "idle" : documentsStatus}
           error={documentsError}
           onRefresh={refreshDocuments}
           onBackendDown={reportBackendDown}
