@@ -150,6 +150,7 @@ paste it into POST /documents (e.g. via the /docs UI) to try the service.
 ```
 ├── README.md · DECISIONS.md · CODE_REVIEW.md   # setup · design record + Part 4 · Part 2 review
 ├── ASSESSMENT.md / ASSESSMENT.pdf              # the brief (markdown conversion + original)
+├── pyproject.toml                              # ruff lint/format configuration
 ├── examples/sample.md                          # ready-made upload content
 ├── backend/
 │   ├── requirements.txt · .env.example · pytest.ini
@@ -163,6 +164,7 @@ paste it into POST /documents (e.g. via the /docs UI) to try the service.
 │   │   └── storage/           # base.py = VectorStore interface · memory.py = numpy implementation
 │   └── tests/                 # pytest suite + the opt-in evaluation harness
 └── frontend/
+    ├── package.json           # scripts (dev/build/lint) + pinned dependencies
     ├── vite.config.ts         # dev proxy → backend, so no CORS setup is needed
     └── src/
         ├── api/               # types.ts mirrors the Pydantic schemas 1:1 · client.ts typed fetch wrapper
