@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { askQuestion } from "../api/client";
+import { askQuestion, isBackendUnreachable } from "../api/client";
 import { ApiError, type AskResponse } from "../api/types";
 
 type Status = "idle" | "loading" | "answered" | "error";
@@ -23,9 +23,15 @@ interface QAPanelProps {
   /** True once the document list has actually loaded — the "upload first"
    * hint waits for it, so it never flashes while the list is still fetching. */
   documentsLoaded: boolean;
+  /** Routes "no backend answered" to the app-level banner. */
+  onBackendDown: () => void;
 }
 
-export function QAPanel({ hasDocuments, documentsLoaded }: QAPanelProps) {
+export function QAPanel({
+  hasDocuments,
+  documentsLoaded,
+  onBackendDown,
+}: QAPanelProps) {
   const [question, setQuestion] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [answer, setAnswer] = useState<AskResponse | null>(null);
@@ -42,6 +48,11 @@ export function QAPanel({ hasDocuments, documentsLoaded }: QAPanelProps) {
       setAnswer(response);
       setStatus("answered");
     } catch (error) {
+      if (isBackendUnreachable(error)) {
+        onBackendDown();
+        setStatus("idle");
+        return;
+      }
       setStatus("error");
       setErrorMessage(error instanceof ApiError ? error.message : "Ask failed");
     }

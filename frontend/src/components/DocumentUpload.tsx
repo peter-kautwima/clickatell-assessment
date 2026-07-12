@@ -1,14 +1,17 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
-import { uploadDocument } from "../api/client";
+import { isBackendUnreachable, uploadDocument } from "../api/client";
 import { ApiError, type DocumentMeta } from "../api/types";
 
 interface DocumentUploadProps {
   onUploaded: (document: DocumentMeta) => void;
+  /** Routes "no backend answered" to the app-level banner, keeping this
+   * panel's message region for its own validation/upload errors. */
+  onBackendDown: () => void;
 }
 
 type Status = "idle" | "submitting" | "success" | "error";
 
-export function DocumentUpload({ onUploaded }: DocumentUploadProps) {
+export function DocumentUpload({ onUploaded, onBackendDown }: DocumentUploadProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -52,6 +55,11 @@ export function DocumentUpload({ onUploaded }: DocumentUploadProps) {
       setContent("");
       onUploaded(document);
     } catch (error) {
+      if (isBackendUnreachable(error)) {
+        onBackendDown();
+        setStatus("idle");
+        return;
+      }
       setStatus("error");
       setMessage(error instanceof ApiError ? error.message : "Upload failed");
     }
