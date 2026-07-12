@@ -1,32 +1,41 @@
-# React + TypeScript + Vite
+# Document Q&A — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + TypeScript + Vite client for the Clickatell document Q&A assessment
+backend. Upload a document, browse the document list, and ask questions
+against the uploaded content.
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```
+npm install
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Run (dev)
+
+```
+npm run dev
+```
+
+Starts the Vite dev server on `http://localhost:5173`. The dev server
+proxies `/documents`, `/query`, and `/ask` requests to a backend running on
+`http://localhost:8000` (see `vite.config.ts`'s `server.proxy`), so the
+FastAPI backend must be running separately — see `backend/README.md` for
+how to start it. This proxy is a dev-only convenience that avoids needing
+CORS configuration on the backend; it does not carry over to a production
+build.
+
+## Build
+
+```
+npm run build
+```
+
+Type-checks (`tsc -b`) then produces a static production bundle in `dist/`.
+
+## Lint
+
+```
+npm run lint
+```
+
+Runs `oxlint` against `.oxlintrc.json`.

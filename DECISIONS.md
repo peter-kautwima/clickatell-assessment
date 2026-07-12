@@ -389,6 +389,85 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
   with no answer through; the prompt rule alone still spends an LLM call on pure
   noise. Together they are cheap first, safe second.
 
+### D9 — Frontend/backend integration (proxy, TypeScript strictness)
+
+- **Context:** the frontend's `api/types.ts`/`api/client.ts` had drifted from
+  the backend contract above (multipart file upload instead of JSON
+  `{title, content}`, no `/ask` call, no error-shape handling), and neither
+  a Vite dev proxy nor backend CORS existed, so no request from the frontend
+  dev server could reach the backend at all.
+- **Decision — Vite dev proxy, not backend CORS middleware.**
+  `frontend/vite.config.ts` gets an explicit `server.proxy` entry per path
+  (`/documents`, `/query`, `/ask` → `http://localhost:8000`), and
+  `api/client.ts` uses a relative `BASE_URL = ""` so requests are same-origin
+  from the browser's point of view.
+  - **Why:** stays entirely inside `frontend/` (no backend file touched);
+    matches the structure this project already committed to — the target
+    tree comment on `vite.config.ts` reads `# dev proxy → backend, avoids
+    CORS setup`, so this finishes an existing design rather than introducing
+    a new one.
+  - **Rejected:** `CORSMiddleware` in `backend/app/main.py`. Equally small
+    (~5–10 lines), but touches a backend file for a frontend-scoped task,
+    and nothing in this document previously named CORS as the intended
+    mechanism.
+  - **Known gap, not resolved here:** production serves the frontend as a
+    static `vite build` bundle from S3 + CloudFront (§4.2) with no dev
+    server, so this proxy cannot exist in that topology. Production will
+    need either backend `CORSMiddleware` or a CloudFront path-based route to
+    the ALB origin — a follow-up, out of scope for this frontend branch.
+- **Decision — enable TypeScript `strict: true` now, not deferred.**
+  Added to `frontend/tsconfig.app.json` before any component code was
+  rewritten.
+  - **Why:** the brief's frontend rubric line is a typed `api/client.ts`
+    with no `any` — without `strict` (specifically `noImplicitAny` and
+    `strictNullChecks`), TypeScript accepts implicit `any` in untyped catch
+    bindings and loosely-inferred `fetch`/`json()` results even when the
+    literal keyword `any` never appears, so the flag is load-bearing for
+    that claim, not cosmetic. Enabling it before writing the real
+    `types.ts`/`client.ts`/components meant every line was authored
+    correctly the first time, instead of a second retrofit pass over five
+    files that were about to be rewritten anyway.
+- **Decision — file "upload" is a client-side read, not a multipart
+  endpoint.** The upload form accepts pasted text and also offers a
+  `.txt`/`.md` file picker, but the file is read in the browser
+  (`file.text()`) and submitted through the same JSON
+  `POST /documents {title, content}` contract — the backend has no
+  multipart endpoint and gains none.
+  - **Why:** the brief's frontend requirement is "form/interface to paste
+    or upload text content with a title" — both halves are satisfied
+    without touching the backend contract, adding a parser, or a second
+    upload path to test. The filename (extension stripped) pre-fills the
+    title when it's empty.
+  - **Rejected:** a backend multipart endpoint. It would duplicate the
+    ingestion path for zero functional gain at this scope — the file types
+    accepted (plain text/markdown) are exactly what the JSON field already
+    carries. PDF extraction is the stretch-goal case that would justify it,
+    and that is explicitly out of scope.
+- **Decision — brand-aligned styling via role-named CSS tokens, no
+  framework.** `frontend/src/index.css` opens with a commented brand-token
+  block (the de-facto style guide): Clickatell navy `#0a1e42`, CTA green
+  `#8dc63f`, and cyan, applied through role names (`--bg-card`,
+  `--action`, `--accent`, …) so raw hexes exist in exactly one place. Both
+  color schemes follow `prefers-color-scheme` — light mirrors the
+  marketing site (white/navy/green), dark mirrors the slide decks
+  (navy/white/green). Two measured accessibility calls: the green button
+  carries NAVY text, not white (white-on-green is 2.04:1, failing WCAG AA;
+  navy-on-green is 8.05:1), and the light-mode cyan focus ring is darkened
+  from the brand's `#35b7e8` (2.31:1 on white, under the 3:1 non-text
+  minimum) to `#0f8ec4` (3.4:1+). Every text/background pair in both
+  schemes measures ≥6.5:1.
+  - **Rejected:** a CSS framework (Tailwind) or a separate style-guide
+    document. At three components the framework costs more than it saves,
+    §4.4 already stakes out minimal tooling as this project's position,
+    and the brief states design/CSS skill is explicitly not graded — the
+    commented token block IS the style guide, at zero extra collateral.
+- **Decision — no `k` control added to the Q&A form.** The backend's
+  `AskRequest.k` (default 5, bounded 1–10) is left to its default; the
+  frontend never sends it. Confirmed with the requester as an explicit
+  scope call, not a default: adding it was assessed as cheap but not
+  necessary for the assignment's stated Q&A feature set, and skipping it
+  keeps the form to one input.
+
 ---
 
 ## Part 4 — Architecture & Reasoning
