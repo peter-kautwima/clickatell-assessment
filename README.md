@@ -73,6 +73,24 @@ cd backend
 pytest --cov=app --cov-report=term-missing
 ```
 
+### Evaluation harness (bonus)
+
+The default suite mocks the embedding model for speed, so it can't measure
+retrieval quality. A separate opt-in harness grades the system against
+known Q&A pairs from `examples/sample.md` using the real local embedding
+model (no API key needed — the LLM side stays on the keyless mock):
+
+```bash
+cd backend
+pytest -m evaluation
+```
+
+It checks that the chunk containing each known fact is retrieved in the
+top 5 with a score above the /ask relevance floor, that /ask returns
+fact-bearing sources end to end, and that an off-topic question triggers
+the "no relevant content" guardrail instead of a made-up answer. The model
+loads from the local cache (first-ever run downloads ~90MB).
+
 ### Coverage report
 
 From `pytest --cov=app --cov-report=term-missing` (59 tests):
