@@ -607,6 +607,10 @@ as the even-simpler alternative). Secrets (`ANTHROPIC_API_KEY`) live in
 **Secrets Manager**, injected as environment variables — the same toggle
 mechanism the code already uses locally. Autoscaling on CPU / request count.
 **Frontend:** `vite build` static output → **S3 + CloudFront**. No server.
+CloudFront also path-routes the three API prefixes (`/documents`, `/query`,
+`/ask`) to the ALB origin, replacing the dev-only Vite proxy (D9's known
+gap) — same-origin from the browser's view, so no CORS configuration and no
+hard-coded API host in the bundle.
 **Vector store:** **RDS Postgres + pgvector** (managed backups, HNSW index).
 **Embedding model:** either baked into the backend image (simplest; larger
 image, slower cold starts) or, at scale, a separate internal ECS service —
@@ -636,7 +640,10 @@ content.
 "answer not found" rate (a spike means ingestion or retrieval regressed); LLM
 latency, error rate (502s), and token spend; p95-latency and error-rate
 alarms; and a small **evaluation harness** — known Q&A pairs run on a
-schedule, so answer quality is a measured number, not a vibe.
+schedule, so answer quality is a measured number, not a vibe. That harness
+is not hypothetical: it exists in this submission (D10, the bonus — six
+known Q&A pairs graded over the real pipeline); production would run
+exactly it on a schedule against the live corpus.
 
 ### 4.4 My approach _(final read-through before submission)_
 
