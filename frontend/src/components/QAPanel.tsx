@@ -43,16 +43,21 @@ export function QAPanel() {
       <h2>Q&amp;A</h2>
       <form onSubmit={handleSubmit} aria-busy={status === "loading"}>
         <label htmlFor="qa-question">Question</label>
-        <input
-          id="qa-question"
-          type="text"
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          required
-        />
-        <button type="submit" disabled={question.trim() === "" || status === "loading"}>
-          {status === "loading" ? "Asking…" : "Ask"}
-        </button>
+        <div className="ask-row">
+          <input
+            id="qa-question"
+            type="text"
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            required
+          />
+          <button
+            type="submit"
+            disabled={question.trim() === "" || status === "loading"}
+          >
+            {status === "loading" ? "Asking…" : "Ask"}
+          </button>
+        </div>
       </form>
 
       {status === "error" && (

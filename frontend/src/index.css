@@ -180,6 +180,23 @@ input[type="file"] {
   opacity: 0.7;
 }
 
+/* Question input and Ask button joined into one control: flat inner corners
+   meet at the seam, the outer ends keep the pill/input rounding. */
+.ask-row {
+  display: flex;
+}
+
+.ask-row input[type="text"] {
+  flex: 1;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.ask-row button {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
 textarea {
   min-height: 130px;
   resize: vertical;
