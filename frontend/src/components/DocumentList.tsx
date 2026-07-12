@@ -18,18 +18,17 @@ export function DocumentList({
   onRefresh,
 }: DocumentListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
+    setDeleteError(null);
     try {
       await deleteDocument(id);
       onRefresh();
-    } catch (deleteError) {
-      // Surfaced via the shared error region on next refresh; a per-item
-      // failure still leaves the list state accurate rather than silently
-      // pretending the delete succeeded.
-      console.error(
-        deleteError instanceof ApiError ? deleteError.message : deleteError,
+    } catch (caught) {
+      setDeleteError(
+        caught instanceof ApiError ? caught.message : "Delete failed",
       );
     } finally {
       setDeletingId(null);
@@ -40,6 +39,7 @@ export function DocumentList({
     <section>
       <h2>Documents</h2>
       <div aria-live="polite">
+        {deleteError !== null && <p role="alert">{deleteError}</p>}
         {status === "loading" && <p>Loading documents…</p>}
         {status === "error" && (
           <p role="alert">
