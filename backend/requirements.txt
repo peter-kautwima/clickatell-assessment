@@ -5,7 +5,6 @@
 # --- core / pre-existing (before any feature branch) ---
 fastapi
 uvicorn[standard]
-python-dotenv       # loads .env into environment variables at startup
 
 # --- feat/chunking-embeddings ---
 pydantic-settings   # BaseSettings backing config.py's env-driven LLM toggle
