@@ -75,8 +75,29 @@ pytest --cov=app --cov-report=term-missing
 
 ### Coverage report
 
-<!-- TODO Sunday: paste the final coverage table here — the brief requires the
-report in the submission, and htmlcov/ is gitignored, so this IS the report. -->
+From `pytest --cov=app --cov-report=term-missing` (59 tests):
+
+| Module | Stmts | Miss | Cover |
+| ------------------------- | ----: | ---: | ---: |
+| app/\_\_init\_\_.py | 0 | 0 | 100% |
+| app/config.py | 5 | 0 | 100% |
+| app/errors.py | 14 | 0 | 100% |
+| app/main.py | 38 | 0 | 100% |
+| app/models/schemas.py | 35 | 0 | 100% |
+| app/routes/documents.py | 28 | 0 | 100% |
+| app/routes/query.py | 20 | 0 | 100% |
+| app/services/answering.py | 57 | 0 | 100% |
+| app/services/chunking.py | 41 | 0 | 100% |
+| app/services/documents.py | 18 | 0 | 100% |
+| app/services/embedding.py | 13 | 1 | 92% |
+| app/services/retrieval.py | 11 | 0 | 100% |
+| app/storage/base.py | 24 | 0 | 100% |
+| app/storage/memory.py | 42 | 0 | 100% |
+| **TOTAL** | **346** | **1** | **99%** |
+
+The single uncovered line is the real `SentenceTransformer(...)` model load in
+`embedding.py`, which the tests deliberately mock (determinism + no ~90 MB
+download in CI). Every other application line is covered.
 
 ## Stopping the servers
 

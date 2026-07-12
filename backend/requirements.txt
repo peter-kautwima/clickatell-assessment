@@ -17,5 +17,5 @@ httpx2              # silences starlette.testclient's httpx deprecation warning;
 
 # --- feat/storage-documents (built — added no dependencies) ---
 
-# --- feat/ask-llm (planned) ---
-# anthropic         # official SDK for the live LLM call
+# --- feat/ask-llm-completion ---
+anthropic           # official async SDK for the live LLM call — DECISIONS.md D4 (LLM integration & prompt design)

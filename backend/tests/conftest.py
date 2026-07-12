@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from app.config import settings
 from app.main import app
 from app.services import embedding as embedding_module
 from app.storage.memory import get_store
@@ -35,6 +36,16 @@ def mock_embedding_model(monkeypatch):
     fake = _FakeModel()
     monkeypatch.setattr(embedding_module, "_get_model", lambda: fake)
     return fake
+
+
+@pytest.fixture(autouse=True)
+def keyless_settings(monkeypatch):
+    """Pin the LLM toggle to keyless. The settings singleton is built at import
+    time, so a real ANTHROPIC_API_KEY in .env would silently flip the whole
+    suite onto the live path (DECISIONS.md D4 — LLM integration & prompt
+    design). Live-path tests set a fake key explicitly.
+    """
+    monkeypatch.setattr(settings, "anthropic_api_key", None)
 
 
 @pytest.fixture(autouse=True)

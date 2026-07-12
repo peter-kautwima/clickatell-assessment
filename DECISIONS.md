@@ -259,6 +259,35 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
   keyless graders run everything; tests are deterministic and fast; upstream
   failure has a defined degradation path — API errors (timeout, 5xx) raise
   `LLMServiceError` → HTTP 502 with an informative message.
+- **Addendum — model choice & request envelope (feat/ask-llm-completion,
+  2026-07-11):** the live model is **`claude-haiku-4-5`**, a recorded choice,
+  not a placeholder. Grounded QA over at most ten short chunks is a simple,
+  latency- and cost-sensitive task, and Haiku 4.5 is the cheapest, fastest
+  current tier ($1 / $5 per million input / output tokens) that still accepts a
+  `temperature` parameter — the newest tiers (Fable 5, Opus 4.8, Sonnet 5)
+  reject sampling params with a 400, so `temperature=0` stays legal here.
+  _Rejected:_ defaulting to a larger Opus/Sonnet model — more capable but
+  roughly 3–10x the cost and slower, for no measurable gain on a task whose
+  answer must come verbatim from ≤10 short chunks; the service wrapper keeps a
+  swap a one-line change (`ANTHROPIC_MODEL`). Request envelope: `max_tokens =
+  1024` (~750 words — ample for a grounded answer, and a hard per-call cost
+  cap), `timeout = 30s`, `max_retries = 1` (the SDK retries timeouts too, so a
+  dead upstream fails at ~1 minute worst-case rather than ~1.5 with the SDK
+  default of 2). The key is passed **explicitly** to `AsyncAnthropic`
+  (correcting the "reads the key from the environment" note above):
+  pydantic-settings loads `.env` without exporting to `os.environ`, so the
+  SDK's own env lookup would find nothing. The client is built **per request,
+  uncached** — nothing connects until the call fires, and a cached client would
+  pin its connection pool to whichever event loop built it first. As-built
+  names: an `LLMClient` interface with `MockLLMClient` / `AnthropicLLMClient`,
+  selected by `_get_client()`.
+- **Addendum — a refusal is not a 502 (same branch):** a model refusal
+  (`stop_reason == "refusal"`) is a valid upstream answer, not a failure, so it
+  returns **200** with a polite in-band message. The refusal is checked BEFORE
+  reading content, because a refused response can carry an empty content list.
+  Only a genuine SDK failure (connection / timeout / 5xx, caught as
+  `anthropic.APIError`) or a "successful" response with no text block at all
+  (e.g. `max_tokens` exhausted before any text) raises `LLMServiceError` → 502.
 
 ### D5 — Error handling
 
@@ -289,15 +318,76 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
   the seeded review bug. Manual threading at this scale adds GIL nuance and
   race conditions on the in-memory store for no gain. At production scale the
   answer is a worker queue, not threads (§4.1).
+- **Addendum — /ask dispatch (feat/ask-llm-completion):** POST /ask is the
+  service's one `async def` endpoint (the I/O-bound LLM call is awaited on the
+  loop). Its retrieval step embeds the question, which is CPU-bound, so
+  `answer_question` runs `retrieve_similar` through `run_in_threadpool` — the
+  same AnyIO pool FastAPI gives the plain-`def` endpoints. Net effect: /ask's
+  embed step has identical concurrency semantics to /query, and a slow LLM call
+  never stalls other requests.
 
 ### D7 — Testing approach
 
-<!-- Claude Code: per CLAUDE.md rule 6, fill this section the day the test
-suite lands (Friday). Cover: what's tested and why (unit: chunking edge cases,
-similarity math; API: TestClient across happy/edge/error paths per endpoint);
-how and why the embedding model is mocked in conftest (determinism + no 90MB
-download in CI); the FINAL coverage percentage; where the report lives
-(README, pasted table). -->
+- **What's tested, and why.** Two layers. **Unit:** chunking edge cases
+  (paragraph merge toward the target, overlap-windowing of an oversized
+  paragraph, empty / whitespace input) and the similarity math (exact dot
+  products, top-k ordering, delete-masking) — the pure logic that must be
+  provably correct. **API (TestClient):** every endpoint across happy / edge /
+  error paths — upload + metadata, the list / get / delete lifecycle, /query
+  ranking and k-bounds, and /ask across its mock answer, the guardrail
+  short-circuit, per-chunk source filtering, and the live toggle. Error paths
+  assert the single D5 JSON shape and the 400-vs-422 split (semantic vs
+  schema-shape) on every endpoint.
+- **The embedding model is mocked in `conftest.py`** — a deterministic fake
+  standing in for SentenceTransformer — for determinism (identical input →
+  identical vector, no sampling) and speed (no ~90MB download in CI, sub-second
+  suite); the startup lifespan runs against the same mock. The one application
+  line this leaves uncovered is the real `SentenceTransformer(...)` load, by
+  design.
+- **The LLM is never called for real.** An autouse fixture pins the API key to
+  `None`, so the suite runs the mock path by default; the live-Anthropic tests
+  swap the async SDK client for an attribute-faithful fake and assert the exact
+  request envelope — zero network calls, no key required.
+- **Coverage: 99%** — 346 statements, a single uncovered line (the mocked model
+  load), across 59 tests; every application module bar that one line is at
+  100%. The full report is reproduced in README.
+
+### D8 — /ask similarity threshold & source filtering
+
+- **Decision:** before answering, drop every retrieved chunk whose cosine score
+  is below **`MIN_SIMILARITY = 0.15`** from BOTH the prompt and the returned
+  sources; if nothing survives, answer "no relevant content found" **without
+  calling the LLM at all** (the §4.3 short-circuit — a model cannot hallucinate
+  an answer it was never asked to generate). The floor lives only on the /ask
+  path in `answering.py`; /query keeps returning raw top-k.
+- **The floor is measured, not guessed.** Calibrated 2026-07-11 through the
+  service's own pipeline (`chunk_text` → `embed_texts` →
+  `InMemoryVectorStore.search`) on `examples/sample.md` plus two off-topic
+  control documents (sourdough, football offside). Top scores per question:
+
+  | kind | question | top score |
+  |---|---|---|
+  | relevant | How long does the trial last before I pay? | 0.453 |
+  | relevant | What happens to my data if I cancel? | 0.528 |
+  | relevant | Is my information encrypted? | **0.227** ← floor driver |
+  | relevant | Can I get my money back after a charge? | 0.383 |
+  | adjacent | Does Northwind Cloud offer a mobile app? | 0.510 |
+  | adjacent | Which programming languages are supported? | 0.146 |
+  | unrelated | What is the capital of France? | 0.048 |
+  | unrelated | How do I teach my dog to sit? | 0.052 |
+
+  The gap between real answers (≥ 0.227) and noise (≤ 0.052) puts **0.15** at
+  ~3x the noise ceiling with ~50% margin under the weakest true positive.
+- **Two lessons the numbers taught.** (1) A pre-measurement guess of 0.25–0.40
+  would have wrongly refused the encryption question — a short question against
+  a ~180-word chunk compresses cosine, so the true-positive floor sits lower
+  than intuition suggests. (2) The 0.510 "mobile app" adjacent case proves the
+  threshold cannot catch on-topic-but-unanswerable questions; that is the
+  prompt-level refusal rule's job (D4). Two layers, each doing only what it can
+  (§4.3).
+- **Rejected:** a single defence. The threshold alone lets an on-topic question
+  with no answer through; the prompt rule alone still spends an LLM call on pure
+  noise. Together they are cheap first, safe second.
 
 ---
 
