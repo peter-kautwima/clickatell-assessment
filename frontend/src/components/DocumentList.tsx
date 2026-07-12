@@ -45,7 +45,7 @@ export function DocumentList({
   return (
     <section>
       <h2>Documents</h2>
-      <div aria-live="polite">
+      <div aria-live="polite" className="doc-status">
         {deleteError !== null && <p role="alert">{deleteError}</p>}
         {status === "loading" && <p>Loading documents…</p>}
         {status === "error" && (

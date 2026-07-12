@@ -208,6 +208,14 @@ textarea:disabled {
   font-size: 0.9rem;
 }
 
+/* Floor equal to one status line, so the brief "Loading documents…" flash
+   on retry doesn't resize the card — a height jump this fast reads as a
+   rendering bug. */
+.doc-status {
+  min-height: 2.6rem;
+}
+
+
 textarea {
   min-height: 130px;
   resize: vertical;
