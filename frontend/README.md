@@ -19,7 +19,7 @@ npm run dev
 Starts the Vite dev server on `http://localhost:5173`. The dev server
 proxies `/documents`, `/query`, and `/ask` requests to a backend running on
 `http://localhost:8000` (see `vite.config.ts`'s `server.proxy`), so the
-FastAPI backend must be running separately — see `backend/README.md` for
+FastAPI backend must be running separately — the root `README.md` covers
 how to start it. This proxy is a dev-only convenience that avoids needing
 CORS configuration on the backend; it does not carry over to a production
 build.
