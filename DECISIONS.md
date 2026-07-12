@@ -461,6 +461,33 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
     §4.4 already stakes out minimal tooling as this project's position,
     and the brief states design/CSS skill is explicitly not graded — the
     commented token block IS the style guide, at zero extra collateral.
+- **Decision — source scores rendered as TREC relevance labels plus the
+  named quantity.** Each Q&A source line reads
+  "**Highly relevant** · cosine similarity 0.510" with a one-line
+  explainer under the Sources heading. Terminology comes from NIST TREC
+  graded relevance judgments (trec.nist.gov: highly relevant / relevant /
+  not relevant) — "not relevant" never renders because the D8 similarity
+  floor (0.15) filters it, so the guardrail literally implements TREC's
+  bottom grade. The 0.45 label cutoff is calibrated, not conventional:
+  every measured correct answer across the D8 calibration and D10
+  evaluation runs scored 0.23–0.53, so ≥ 0.45 marks the top of the
+  true-answer range. Cosine magnitudes are not comparable across
+  embedding models, so no universal threshold exists to borrow —
+  published work tunes per task (e.g. an optimized 0.671 for MPNet
+  paraphrase detection) and empirical calibration is the standard
+  practice.
+  - **Rejected:** a bare number ("score: 0.338" means nothing to any
+    audience); a confidence percentage (nothing in the pipeline emits
+    calibrated confidence — a fabricated % invites "how is that
+    computed?" with no good answer); rescaling against the observed ~0.6
+    ceiling (an observed maximum, not a mathematical bound — a
+    legitimate 0.65 would render past 100%); surfacing the D10
+    evaluation results in the UI (test results about the sample corpus
+    say nothing about the user's own question — there is no answer key
+    for arbitrary questions). The answer itself carries no score by
+    design: similarity is measured per chunk, while the answer is
+    synthesized from several — its quality mechanism is the D8 guardrail
+    refusal, not a fabricated number.
 - **Decision — no `k` control added to the Q&A form.** The backend's
   `AskRequest.k` (default 5, bounded 1–10) is left to its default; the
   frontend never sends it. Confirmed with the requester as an explicit
