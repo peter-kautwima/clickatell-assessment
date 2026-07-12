@@ -690,6 +690,19 @@ rule in my own service. The quieter second challenge was knowing when to stop
 designing and start building — solved by locking this record and enforcing
 "main is always runnable."
 
+**The last day was an audit, not a build.** Before submission I turned the
+Part 2 review lens on my own repo: a strictly read-only pass first — the
+full validation suite, every endpoint probed against the live server, a
+documentation-consistency sweep — findings ranked by severity, then fixes
+applied one small commit at a time. It caught real defects in my own work,
+the most instructive being a comment that claimed delete failures surfaced
+in the UI when the code only logged them to the console — exactly the class
+of flaw I criticised in the review module, found on my side of the fence.
+The fixes followed the same measure-first habit as D8: the frontend's
+backend-down handling was written only after curl showed what the dev proxy
+actually returns with the backend stopped (a 502 with a text/plain body),
+not from an assumption about it.
+
 **With two more days.** The evaluation harness topped this list until the
 final weekend, when it became the built bonus (D10) — the right first pick
 precisely because it converts every other improvement into a measured number.
