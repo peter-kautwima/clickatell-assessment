@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { uploadDocument } from "../api/client";
 import { ApiError, type DocumentMeta } from "../api/types";
 
@@ -15,6 +15,28 @@ export function DocumentUpload({ onUploaded }: DocumentUploadProps) {
   const [message, setMessage] = useState<string | null>(null);
 
   const canSubmit = title.trim() !== "" && content.trim() !== "";
+
+  // Client-side read only: the backend accepts JSON {title, content}, not
+  // multipart uploads, so the file's text is read in the browser and
+  // submitted through the same endpoint as pasted content.
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      setContent(text);
+      if (title.trim() === "") {
+        setTitle(file.name.replace(/\.(txt|md)$/i, ""));
+      }
+      setStatus("idle");
+      setMessage(null);
+    } catch {
+      setStatus("error");
+      setMessage(`Could not read "${file.name}"`);
+    }
+    // Allow re-selecting the same file after editing the textarea.
+    event.target.value = "";
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -55,7 +77,17 @@ export function DocumentUpload({ onUploaded }: DocumentUploadProps) {
             id="upload-content"
             value={content}
             onChange={(event) => setContent(event.target.value)}
+            placeholder="Paste text here, or load a file below"
             required
+          />
+        </div>
+        <div>
+          <label htmlFor="upload-file">Or load from a file (.txt / .md)</label>
+          <input
+            id="upload-file"
+            type="file"
+            accept=".txt,.md,text/plain,text/markdown"
+            onChange={handleFileChange}
           />
         </div>
         <button type="submit" disabled={!canSubmit || status === "submitting"}>
