@@ -1,17 +1,17 @@
 # DECISIONS.md — Architecture & Decision Record
 
 > The single design document for this service: system architecture, every
-> design decision with its reasoning and rejected alternatives (D1–D7), and
+> design decision with its reasoning and rejected alternatives (D1–D10), and
 > the Part 4 written answers (4.1–4.4). Per the brief: "DECISIONS.md covering
 > Part 4 + architectural choices throughout."
 >
 > **Reference key:** plain file paths (e.g. `services/chunking.py`) point into
 > the repo; D-numbers and §-numbers point to sections of THIS document.
 >
-> **Status:** all decisions are final (locked in the Thursday design session).
-> Two living items only: **D7** fills when the test suite lands (it needs the
-> real coverage number), and **4.4** gets my final read-through before
-> submission.
+> **Status:** the core architecture (D1–D7) was locked in the Thursday design
+> session; D8–D10 record decisions made during the build, same day they were
+> made. D7 carries the real coverage number. One living item: **4.4** gets my
+> final read-through before submission.
 
 ---
 
@@ -494,6 +494,34 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
   scope call, not a default: adding it was assessed as cheap but not
   necessary for the assignment's stated Q&A feature set, and skipping it
   keeps the form to one input.
+- **Addendum — final-audit UX fixes (audit/final-review, 2026-07-12), none
+  touching the backend contract:**
+  (1) **Backend-unreachable is one normalized failure, not raw gateway
+  text.** Measured behavior: with the backend stopped, the Vite dev proxy
+  answers **502 with a `text/plain` body** (verified with curl against the
+  running dev server), and with no server listening at all, `fetch` rejects
+  with a browser TypeError — both previously leaked raw "Bad Gateway" /
+  generic text into panel error regions, once per action. `api/client.ts`
+  now folds both into a single `backend_unreachable` error. The inference is
+  sound for this system specifically: `main.py`'s catch-all handler
+  guarantees even 500s leave the app as the D5 JSON shape, so a 502/503/504
+  whose body is NOT one of the two known JSON error shapes cannot have come
+  from the app. The backend's own JSON 502 (`llm_service_error`) passes
+  through untouched. App.tsx renders one banner with a retry; all panels
+  route the unreachable case there instead of stacking local copies.
+  _Rejected:_ a global fetch wrapper/error boundary or a toast system —
+  three components sharing one banner does the job with no new machinery.
+  (2) **Q&A gated until a document exists** — input and Ask button disabled
+  with an "upload a document first" hint; asking against an empty store can
+  only ever produce the D8 no-content guardrail answer, so the UI now says
+  why up front. The hint waits for the document list to finish loading so it
+  never flashes mid-fetch.
+  (3) **Delete failures surface in the list's alert region** — previously
+  console-only, behind a comment that wrongly claimed the shared error
+  region caught it (it only ran on success; the comment is gone).
+  Cosmetic, same pass: the Ask button sits flush against the question input
+  as one search-bar row, and the browser tab is titled "Document Q&A"
+  instead of the starter's "frontend".
 
 ### D10 — Evaluation harness (bonus)
 
@@ -579,6 +607,10 @@ as the even-simpler alternative). Secrets (`ANTHROPIC_API_KEY`) live in
 **Secrets Manager**, injected as environment variables — the same toggle
 mechanism the code already uses locally. Autoscaling on CPU / request count.
 **Frontend:** `vite build` static output → **S3 + CloudFront**. No server.
+CloudFront also path-routes the three API prefixes (`/documents`, `/query`,
+`/ask`) to the ALB origin, replacing the dev-only Vite proxy (D9's known
+gap) — same-origin from the browser's view, so no CORS configuration and no
+hard-coded API host in the bundle.
 **Vector store:** **RDS Postgres + pgvector** (managed backups, HNSW index).
 **Embedding model:** either baked into the backend image (simplest; larger
 image, slower cold starts) or, at scale, a separate internal ECS service —
@@ -608,7 +640,10 @@ content.
 "answer not found" rate (a spike means ingestion or retrieval regressed); LLM
 latency, error rate (502s), and token spend; p95-latency and error-rate
 alarms; and a small **evaluation harness** — known Q&A pairs run on a
-schedule, so answer quality is a measured number, not a vibe.
+schedule, so answer quality is a measured number, not a vibe. That harness
+is not hypothetical: it exists in this submission (D10, the bonus — six
+known Q&A pairs graded over the real pipeline); production would run
+exactly it on a schedule against the live corpus.
 
 ### 4.4 My approach _(final read-through before submission)_
 
@@ -655,8 +690,23 @@ rule in my own service. The quieter second challenge was knowing when to stop
 designing and start building — solved by locking this record and enforcing
 "main is always runnable."
 
-**With two more days.** An evaluation harness first — known Q&A pairs scoring
-retrieval and answer quality, because it converts every other improvement
-into a measured number. Then contextual retrieval (prepending document
-context to each chunk before embedding), a persistent pgvector store behind
-the existing interface, and streaming /ask responses to the frontend.
+**The last day was an audit, not a build.** Before submission I turned the
+Part 2 review lens on my own repo: a strictly read-only pass first — the
+full validation suite, every endpoint probed against the live server, a
+documentation-consistency sweep — findings ranked by severity, then fixes
+applied one small commit at a time. It caught real defects in my own work,
+the most instructive being a comment that claimed delete failures surfaced
+in the UI when the code only logged them to the console — exactly the class
+of flaw I criticised in the review module, found on my side of the fence.
+The fixes followed the same measure-first habit as D8: the frontend's
+backend-down handling was written only after curl showed what the dev proxy
+actually returns with the backend stopped (a 502 with a text/plain body),
+not from an assumption about it.
+
+**With two more days.** The evaluation harness topped this list until the
+final weekend, when it became the built bonus (D10) — the right first pick
+precisely because it converts every other improvement into a measured number.
+Next would be contextual retrieval (prepending document context to each chunk
+before embedding, graded against that same harness), a persistent pgvector
+store behind the existing VectorStore interface, and streaming /ask responses
+to the frontend.

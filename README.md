@@ -147,9 +147,43 @@ paste it into POST /documents (e.g. via the /docs UI) to try the service.
 
 ## Project structure
 
-<!-- TODO Mon: short final tree here; the design reasoning lives in DECISIONS.md §§1–3 -->
+```
+├── README.md · DECISIONS.md · CODE_REVIEW.md   # setup · design record + Part 4 · Part 2 review
+├── ASSESSMENT.md / ASSESSMENT.pdf              # the brief (markdown conversion + original)
+├── pyproject.toml                              # ruff lint/format configuration
+├── examples/sample.md                          # ready-made upload content
+├── backend/
+│   ├── requirements.txt · .env.example · pytest.ini
+│   ├── app/
+│   │   ├── main.py            # app factory: routers, exception handlers, startup model warm-up
+│   │   ├── config.py          # env settings; ANTHROPIC_API_KEY present → live LLM, absent → mock
+│   │   ├── errors.py          # domain exceptions + the single JSON error shape
+│   │   ├── routes/            # documents.py, query.py — thin HTTP translation, zero business logic
+│   │   ├── services/          # chunking, embedding, documents, retrieval, answering
+│   │   ├── models/schemas.py  # every Pydantic request/response contract in one place
+│   │   └── storage/           # base.py = VectorStore interface · memory.py = numpy implementation
+│   └── tests/                 # pytest suite + the opt-in evaluation harness
+└── frontend/
+    ├── package.json           # scripts (dev/build/lint) + pinned dependencies
+    ├── vite.config.ts         # dev proxy → backend, so no CORS setup is needed
+    └── src/
+        ├── api/               # types.ts mirrors the Pydantic schemas 1:1 · client.ts typed fetch wrapper
+        └── components/        # DocumentUpload, DocumentList, QAPanel
+```
+
+The reasoning behind this layout — module responsibilities and every design
+decision with its trade-offs — lives in [DECISIONS.md](DECISIONS.md)
+(System Overview, Requirements Trace, and Module Map sections).
 
 ## Notes for reviewers
 
-<!-- TODO Mon: anything a grader should know before running — mock behaviour,
-model download wait, how to flip live LLM on. Keep to 3–4 lines. -->
+- **No API key needed.** Keyless, `/ask` answers via a clearly-labeled mock
+  that builds the exact same prompt template as the live path; set
+  `ANTHROPIC_API_KEY` in `backend/.env` to flip on live Claude answers.
+- **First backend start pauses** while the ~90 MB embedding model downloads —
+  one-time cost, cached afterwards.
+- **Documents live in memory by design** (see DECISIONS.md, Vector storage &
+  search): a backend restart clears them.
+- The Q&A form stays disabled until at least one document is uploaded; if the
+  backend isn't running, the UI shows a single "can't reach the backend"
+  banner with a retry.

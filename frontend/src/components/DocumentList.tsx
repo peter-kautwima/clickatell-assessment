@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { deleteDocument } from "../api/client";
+import { deleteDocument, isBackendUnreachable } from "../api/client";
 import { ApiError, type DocumentMeta } from "../api/types";
 
 type Status = "idle" | "loading" | "loaded" | "error";
@@ -9,6 +9,8 @@ interface DocumentListProps {
   status: Status;
   error: string | null;
   onRefresh: () => void;
+  /** Routes "no backend answered" to the app-level banner. */
+  onBackendDown: () => void;
 }
 
 export function DocumentList({
@@ -16,21 +18,25 @@ export function DocumentList({
   status,
   error,
   onRefresh,
+  onBackendDown,
 }: DocumentListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
+    setDeleteError(null);
     try {
       await deleteDocument(id);
       onRefresh();
-    } catch (deleteError) {
-      // Surfaced via the shared error region on next refresh; a per-item
-      // failure still leaves the list state accurate rather than silently
-      // pretending the delete succeeded.
-      console.error(
-        deleteError instanceof ApiError ? deleteError.message : deleteError,
-      );
+    } catch (caught) {
+      if (isBackendUnreachable(caught)) {
+        onBackendDown();
+      } else {
+        setDeleteError(
+          caught instanceof ApiError ? caught.message : "Delete failed",
+        );
+      }
     } finally {
       setDeletingId(null);
     }
@@ -39,7 +45,8 @@ export function DocumentList({
   return (
     <section>
       <h2>Documents</h2>
-      <div aria-live="polite">
+      <div aria-live="polite" className="doc-status">
+        {deleteError !== null && <p role="alert">{deleteError}</p>}
         {status === "loading" && <p>Loading documents…</p>}
         {status === "error" && (
           <p role="alert">

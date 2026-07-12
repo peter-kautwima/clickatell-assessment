@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { askQuestion } from "../api/client";
+import { askQuestion, isBackendUnreachable } from "../api/client";
 import { ApiError, type AskResponse } from "../api/types";
 
 type Status = "idle" | "loading" | "answered" | "error";
@@ -16,7 +16,22 @@ function relevanceLabel(score: number): string {
   return score >= 0.45 ? "Highly relevant" : "Relevant";
 }
 
-export function QAPanel() {
+interface QAPanelProps {
+  /** Q&A is pointless against an empty store, so the form stays disabled
+   * until at least one document exists. */
+  hasDocuments: boolean;
+  /** True once the document list has actually loaded — the "upload first"
+   * hint waits for it, so it never flashes while the list is still fetching. */
+  documentsLoaded: boolean;
+  /** Routes "no backend answered" to the app-level banner. */
+  onBackendDown: () => void;
+}
+
+export function QAPanel({
+  hasDocuments,
+  documentsLoaded,
+  onBackendDown,
+}: QAPanelProps) {
   const [question, setQuestion] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [answer, setAnswer] = useState<AskResponse | null>(null);
@@ -33,6 +48,11 @@ export function QAPanel() {
       setAnswer(response);
       setStatus("answered");
     } catch (error) {
+      if (isBackendUnreachable(error)) {
+        onBackendDown();
+        setStatus("idle");
+        return;
+      }
       setStatus("error");
       setErrorMessage(error instanceof ApiError ? error.message : "Ask failed");
     }
@@ -43,16 +63,27 @@ export function QAPanel() {
       <h2>Q&amp;A</h2>
       <form onSubmit={handleSubmit} aria-busy={status === "loading"}>
         <label htmlFor="qa-question">Question</label>
-        <input
-          id="qa-question"
-          type="text"
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          required
-        />
-        <button type="submit" disabled={question.trim() === "" || status === "loading"}>
-          {status === "loading" ? "Asking…" : "Ask"}
-        </button>
+        <div className="ask-row">
+          <input
+            id="qa-question"
+            type="text"
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            disabled={!hasDocuments}
+            required
+          />
+          <button
+            type="submit"
+            disabled={
+              !hasDocuments || question.trim() === "" || status === "loading"
+            }
+          >
+            {status === "loading" ? "Asking…" : "Ask"}
+          </button>
+        </div>
+        {documentsLoaded && !hasDocuments && (
+          <p className="hint">Upload a document to start asking questions.</p>
+        )}
       </form>
 
       {status === "error" && (

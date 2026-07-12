@@ -17,6 +17,32 @@ import {
 // frontend and backend from one origin.
 const BASE_URL = "";
 
+export const BACKEND_UNREACHABLE_CODE = "backend_unreachable";
+export const BACKEND_UNREACHABLE_MESSAGE =
+  "Can't reach the backend — check that the server is running.";
+
+// Gateway statuses carrying a non-JSON body mean the request died BEFORE
+// reaching the app (the Vite dev proxy answers 502 itself when the backend
+// is stopped) — without this mapping, the raw "Bad Gateway" statusText
+// would bleed into the UI. The backend's own 502 (llm_service_error)
+// arrives as JSON and is preserved untouched by parseErrorResponse.
+const GATEWAY_STATUSES = new Set([502, 503, 504]);
+
+function backendUnreachableError(status: number): ApiError {
+  return new ApiError(
+    status,
+    BACKEND_UNREACHABLE_CODE,
+    BACKEND_UNREACHABLE_MESSAGE,
+  );
+}
+
+/** True when the failure means "no backend answered", as opposed to the
+ * backend answering with an error — components route the former to the
+ * app-level banner instead of their local error regions. */
+export function isBackendUnreachable(error: unknown): boolean {
+  return error instanceof ApiError && error.code === BACKEND_UNREACHABLE_CODE;
+}
+
 function isErrorResponse(body: unknown): body is ErrorResponse {
   if (typeof body !== "object" || body === null || !("error" in body)) {
     return false;
@@ -47,7 +73,7 @@ async function parseErrorResponse(response: Response): Promise<ApiError> {
   try {
     body = await response.json();
   } catch {
-    return new ApiError(response.status, "unknown_error", response.statusText);
+    return fallbackError(response);
   }
 
   if (isErrorResponse(body)) {
@@ -57,17 +83,39 @@ async function parseErrorResponse(response: Response): Promise<ApiError> {
     const message = body.detail.map((d) => d.msg).join("; ") || "Validation failed";
     return new ApiError(response.status, "validation_error", message);
   }
-  return new ApiError(response.status, "unknown_error", response.statusText);
+  return fallbackError(response);
+}
+
+// For any response that is not one of the backend's two known error shapes:
+// gateway statuses become the friendly "unreachable" error, everything else
+// keeps its statusText (with an HTTP-code fallback — HTTP/2 responses often
+// carry an empty statusText).
+function fallbackError(response: Response): ApiError {
+  if (GATEWAY_STATUSES.has(response.status)) {
+    return backendUnreachableError(response.status);
+  }
+  return new ApiError(
+    response.status,
+    "unknown_error",
+    response.statusText || `HTTP ${response.status}`,
+  );
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...init?.headers,
+      },
+    });
+  } catch {
+    // fetch rejects only on network-level failure (connection refused, DNS),
+    // and the browser's TypeError message isn't written for end users.
+    throw backendUnreachableError(0);
+  }
 
   if (!response.ok) {
     throw await parseErrorResponse(response);
