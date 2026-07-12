@@ -10,6 +10,10 @@ in-memory vector store · React + TypeScript (Vite)
 **Companion docs:** [DECISIONS.md](DECISIONS.md) — architecture, every design
 decision with reasoning, and Part 4 · [CODE_REVIEW.md](CODE_REVIEW.md) — Part 2
 
+
+https://github.com/user-attachments/assets/25266464-353e-4595-9a0f-957c50cf8077
+
+
 ---
 
 ## Prerequisites
