@@ -259,3 +259,8 @@ li p + p {
   font-size: 0.85rem;
   margin-top: 4px;
 }
+
+.sources-note {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}

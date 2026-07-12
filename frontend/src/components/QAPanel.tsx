@@ -4,6 +4,18 @@ import { ApiError, type AskResponse } from "../api/types";
 
 type Status = "idle" | "loading" | "answered" | "error";
 
+// Terminology from NIST TREC graded relevance judgments (trec.nist.gov):
+// highly relevant / relevant / not relevant. "Not relevant" never reaches
+// the UI — the backend's 0.15 similarity floor filters it (DECISIONS.md D8,
+// /ask similarity threshold & source filtering). The 0.45 cutoff is the top
+// of the measured true-answer range, 0.45–0.53 across the D8 calibration
+// and D10 evaluation runs (DECISIONS.md D10, Evaluation harness) — cosine
+// magnitudes aren't comparable across models, so cutoffs are calibrated
+// per corpus, not taken from a universal scale.
+function relevanceLabel(score: number): string {
+  return score >= 0.45 ? "Highly relevant" : "Relevant";
+}
+
 export function QAPanel() {
   const [question, setQuestion] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -54,13 +66,19 @@ export function QAPanel() {
           {answer.sources.length > 0 && (
             <>
               <h3>Sources</h3>
+              <p className="sources-note">
+                Ranked by cosine similarity to your question; matches below
+                0.15 are filtered out. Labels reflect this system&apos;s
+                measured score ranges.
+              </p>
               <ul>
                 {answer.sources.map((source, index) => (
                   <li key={`${source.document_id}-${index}`}>
                     <p>{source.chunk}</p>
                     <p>
-                      document: {source.document_id} — score:{" "}
-                      {source.score.toFixed(3)}
+                      <strong>{relevanceLabel(source.score)}</strong> · cosine
+                      similarity {source.score.toFixed(3)} — document:{" "}
+                      {source.document_id}
                     </p>
                   </li>
                 ))}
