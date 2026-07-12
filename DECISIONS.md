@@ -468,6 +468,49 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
   necessary for the assignment's stated Q&A feature set, and skipping it
   keeps the form to one input.
 
+### D10 — Evaluation harness (bonus)
+
+- **Decision:** the optional bonus is the evaluation harness —
+  `backend/tests/test_evaluation.py`, known Q&A pairs from
+  `examples/sample.md` graded automatically over the real HTTP pipeline
+  (upload → chunk → embed → retrieve → ask). Opt-in via a registered
+  pytest marker: `pytest.ini` deselects `evaluation` by default
+  (`addopts = -m "not evaluation"`), and `pytest -m evaluation` runs it.
+- **Why a marker and not a flag:** the harness must use the REAL
+  sentence-transformers model — the ordinary suite mocks embeddings for
+  speed, and measuring search quality against mocked vectors measures
+  nothing. A considered-and-rejected `--run-eval` CLI flag (or env var)
+  toggling the mock inside conftest.py would flip ALL 59 existing tests
+  onto the real model when passed — slow, and semantically wrong since
+  those tests were written against deterministic fake vectors — so test
+  selection would still be needed on top, i.e. markers anyway. The marker
+  plus a module-level fixture override (the eval module redefines the
+  autouse `mock_embedding_model` as a no-op) does selection and model
+  choice in one mechanism, and leaves conftest.py untouched.
+- **What is graded, and what deliberately is not:** (1) retrieval hit@5 —
+  for each of six questions, some top-5 chunk contains the known fact,
+  scoring above the D8 floor (0.15); asserted per question at 100% on
+  this curated set, not averaged, so any regression fails loudly.
+  (2) /ask end-to-end — sources survive the guardrail and contain the
+  fact. (3) A negative control — an off-topic question returns the fixed
+  guardrail answer with zero sources, proving the D8 short-circuit on
+  real vectors. **Answer TEXT is deliberately not graded:** keyless, the
+  mock answers with a fixed 200-char excerpt of the top chunk, so
+  string-matching the answer grades excerpt truncation, not retrieval —
+  measured: every known fact sits past the excerpt boundary. With a key,
+  live answers are non-deterministic and would grade the model, not this
+  system. Sources are the deterministic contract.
+- **Measured results (2026-07-12, real model):** fact-bearing chunk rank
+  and top-5 scores per question — trial length: rank 1 (0.476) · Team
+  price: rank 1 (0.510) · refund window: rank 1 (0.477) · Enterprise
+  uptime: rank 3 (top-5 0.519/0.505/0.450) · trial expiry: rank 2
+  (0.342/0.321) · encryption at rest: rank 1 (0.286). hit@5 = 6/6; all
+  fact chunks clear the 0.15 floor; guardrail control passes. The uptime
+  question ranking its fact chunk third is the concrete argument for
+  returning k=5 sources rather than only the best chunk.
+- **No app code changed** — the harness is pure test collateral; default
+  suite remains 59 tests / 99% coverage, byte-identical behavior.
+
 ---
 
 ## Part 4 — Architecture & Reasoning
