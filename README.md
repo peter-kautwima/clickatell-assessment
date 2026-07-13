@@ -8,11 +8,15 @@ chunking → local embeddings → similarity search → grounded LLM answer with
 in-memory vector store · React + TypeScript (Vite)
 
 **Companion docs:** [DECISIONS.md](DECISIONS.md) — architecture, every design
-decision with reasoning, and Part 4 · [CODE_REVIEW.md](CODE_REVIEW.md) — Part 2
+decision with reasoning, and Part 4 · [CODE_REVIEW.md](CODE_REVIEW.md) — the
+Part 2 review of the provided module
 
+## Demo
+
+A short screen recording of the running service — uploading a document, asking
+a question, and getting a grounded answer with its source chunks and scores.
 
 https://github.com/user-attachments/assets/25266464-353e-4595-9a0f-957c50cf8077
-
 
 ---
 
@@ -39,7 +43,6 @@ cp .env.example .env         # add ANTHROPIC_API_KEY=... for live answers (optio
   the server (not the first request) — the app warms it during startup, so
   expect a pause before "Application startup complete" appears the first
   time; one-time cost, cached after that.
-- Interactive API docs once running: http://localhost:8000/docs
 
 ### Run the backend
 
@@ -76,7 +79,23 @@ If port 8000 is busy, add `--port 8001`.
 ```bash
 cd frontend
 npm install
-npm run dev     # http://localhost:5173 — dev proxy forwards API calls to the backend
+npm run dev
+```
+
+- http://localhost:5173 — dev proxy forwards API calls to the backend
+
+## Stopping the servers
+
+```bash
+lsof -t -i :8000 | xargs -r kill    # backend
+lsof -t -i :5173 | xargs -r kill    # frontend
+```
+
+Windows (PowerShell):
+
+```powershell
+Get-NetTCPConnection -LocalPort 8000 | ForEach-Object { Stop-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue }
+Get-NetTCPConnection -LocalPort 5173 | ForEach-Object { Stop-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue }
 ```
 
 ## Running tests & coverage
@@ -108,41 +127,27 @@ loads from the local cache (first-ever run downloads ~90MB).
 
 From `pytest --cov=app --cov-report=term-missing` (61 tests):
 
-| Module | Stmts | Miss | Cover |
-| ------------------------- | ----: | ---: | ---: |
-| app/\_\_init\_\_.py | 0 | 0 | 100% |
-| app/config.py | 7 | 0 | 100% |
-| app/errors.py | 14 | 0 | 100% |
-| app/main.py | 38 | 0 | 100% |
-| app/models/schemas.py | 35 | 0 | 100% |
-| app/routes/documents.py | 28 | 0 | 100% |
-| app/routes/query.py | 20 | 0 | 100% |
-| app/services/answering.py | 60 | 0 | 100% |
-| app/services/chunking.py | 41 | 0 | 100% |
-| app/services/documents.py | 18 | 0 | 100% |
-| app/services/embedding.py | 13 | 1 | 92% |
-| app/services/retrieval.py | 11 | 0 | 100% |
-| app/storage/base.py | 24 | 0 | 100% |
-| app/storage/memory.py | 42 | 0 | 100% |
-| **TOTAL** | **351** | **1** | **99%** |
+| Module                    |   Stmts |  Miss |   Cover |
+| ------------------------- | ------: | ----: | ------: |
+| app/\_\_init\_\_.py       |       0 |     0 |    100% |
+| app/config.py             |       7 |     0 |    100% |
+| app/errors.py             |      14 |     0 |    100% |
+| app/main.py               |      38 |     0 |    100% |
+| app/models/schemas.py     |      35 |     0 |    100% |
+| app/routes/documents.py   |      28 |     0 |    100% |
+| app/routes/query.py       |      20 |     0 |    100% |
+| app/services/answering.py |      60 |     0 |    100% |
+| app/services/chunking.py  |      41 |     0 |    100% |
+| app/services/documents.py |      18 |     0 |    100% |
+| app/services/embedding.py |      13 |     1 |     92% |
+| app/services/retrieval.py |      11 |     0 |    100% |
+| app/storage/base.py       |      24 |     0 |    100% |
+| app/storage/memory.py     |      42 |     0 |    100% |
+| **TOTAL**                 | **351** | **1** | **99%** |
 
 The single uncovered line is the real `SentenceTransformer(...)` model load in
 `embedding.py`, which the tests deliberately mock (determinism + no ~90 MB
 download in CI). Every other application line is covered.
-
-## Stopping the servers
-
-```bash
-lsof -t -i :8000 | xargs -r kill    # backend
-lsof -t -i :5173 | xargs -r kill    # frontend
-```
-
-Windows (PowerShell):
-
-```powershell
-Get-NetTCPConnection -LocalPort 8000 | ForEach-Object { Stop-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue }
-Get-NetTCPConnection -LocalPort 5173 | ForEach-Object { Stop-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue }
-```
 
 ## API overview
 
@@ -196,11 +201,6 @@ decision with its trade-offs — lives in [DECISIONS.md](DECISIONS.md)
 
 ## Notes for reviewers
 
-- **No API key needed.** Keyless, `/ask` answers via a clearly-labeled mock
-  that builds the exact same prompt template as the live path; set
-  `ANTHROPIC_API_KEY` in `backend/.env` to flip on live Claude answers.
-- **First backend start pauses** while the ~90 MB embedding model downloads —
-  one-time cost, cached afterwards.
 - **Documents live in memory by design** (see DECISIONS.md, Vector storage &
   search): a backend restart clears them.
 - The Q&A form stays disabled until at least one document is uploaded; if the
