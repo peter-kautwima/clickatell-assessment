@@ -6,6 +6,7 @@ DECISIONS.md D4 (LLM integration & prompt design).
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from xml.sax.saxutils import escape
 
 import anthropic
 from anthropic import AsyncAnthropic
@@ -33,6 +34,11 @@ SYSTEM_PROMPT = (
 )
 
 
+def _escape_attribute(value: str) -> str:
+    """Escape text for a double-quoted XML-style attribute in the prompt."""
+    return escape(value, {'"': "&quot;"})
+
+
 def build_prompt(
     question: str, matches: list[tuple[str, str, float]]
 ) -> tuple[str, str]:
@@ -41,8 +47,14 @@ def build_prompt(
     matches arrives in the store's search shape: (chunk_text, doc_id, score),
     best first; ids are 1-based so the model can cite "chunk 1" naturally.
     """
+    # Chunk text and ids are user-supplied, so both are XML-escaped before
+    # insertion: a document containing a literal "</chunk></context>" must not
+    # be able to close the delimiters and restructure the prompt — DECISIONS.md
+    # D4 (LLM integration & prompt design): delimiters only defend if data
+    # can't forge them.
     chunk_tags = "\n".join(
-        f'<chunk id="{i}" document_id="{doc_id}">{chunk}</chunk>'
+        f'<chunk id="{i}" document_id="{_escape_attribute(doc_id)}">'
+        f"{escape(chunk)}</chunk>"
         for i, (chunk, doc_id, _score) in enumerate(matches, start=1)
     )
     user_prompt = f"<context>\n{chunk_tags}\n</context>\n\nQuestion: {question}"
