@@ -210,6 +210,15 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
   text: no endpoint returns the original (GET /{id} is "metadata and its
   chunks"; /ask returns answer + source CHUNKS), so retaining it would be
   dead state.
+  No defensive shape re-validation inside `add()`/`search()` — the store
+  trusts its single caller, since the ingestion service guarantees each
+  chunk has exactly one vector before storage ever sees them; a production
+  store crossing a process boundary would re-check, but here it would guard
+  against a caller that cannot exist. And `DocumentCreate.title` uses
+  `Field(min_length=1)`, which rejects an empty title (422) but not a
+  whitespace-only one — a `.strip()` validator is the trivial production
+  tightening, left out at this scale because a blank-looking title harms
+  only the person who typed it.
 - **Query endpoint choices (feat/query-search, 2026-07-11):** `/query`
   defaults to `k=5` and lets clients override `k` from 1 to 10. Five chunks
   is the small default because D1's target is ~180 words per chunk, so a
