@@ -371,8 +371,8 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
   `None`, so the suite runs the mock path by default; the live-Anthropic tests
   swap the async SDK client for an attribute-faithful fake and assert the exact
   request envelope — zero network calls, no key required.
-- **Coverage: 99%** — 346 statements, a single uncovered line (the mocked model
-  load), across 59 tests; every application module bar that one line is at
+- **Coverage: 99%** — 351 statements, a single uncovered line (the mocked model
+  load), across 61 tests; every application module bar that one line is at
   100%. The full report is reproduced in README.
 
 ### D8 — /ask similarity threshold & source filtering
@@ -587,7 +587,7 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
   question ranking its fact chunk third is the concrete argument for
   returning k=5 sources rather than only the best chunk.
 - **No app code changed** — the harness is pure test collateral; default
-  suite remains 59 tests / 99% coverage, byte-identical behavior.
+  suite remains 61 tests / 99% coverage, byte-identical behavior.
 
 ---
 
