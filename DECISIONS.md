@@ -595,8 +595,12 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
 
 ### 4.1 Production readiness (1,000 documents / 100 concurrent users)
 
-The honest first observation: 1,000 documents ≈ 50k chunks × 384 dims × 4
-bytes ≈ **~75MB of vectors — RAM is not the constraint**. What actually breaks
+The honest first observation: 1,000 documents ≈ 50k chunks × 384 dims × 8
+bytes ≈ **~150MB of vectors — RAM is not the constraint**. (`memory.py` stores
+the matrix as numpy's default `float64`; the model emits `float32`, so casting
+at store time halves this to ~75MB — a one-line production optimization, not a
+change worth making at assessment scale where the point stands either way.)
+What actually breaks
 in-memory storage at this scale is _statefulness_: 100 concurrent users means
 multiple app replicas behind a load balancer, and replicas cannot share
 process memory; a restart also erases everything. The changes:
