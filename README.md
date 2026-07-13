@@ -66,6 +66,11 @@ picked up from either starting point.
 
 If port 8000 is busy, add `--port 8001`.
 
+### The API is available at
+
+- Application root (liveness check): http://localhost:8000/
+- Interactive OpenAPI docs (try every endpoint here): http://localhost:8000/docs
+
 ## Frontend setup
 
 ```bash
