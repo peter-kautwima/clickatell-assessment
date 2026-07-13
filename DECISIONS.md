@@ -288,6 +288,29 @@ doc_id, score)]` · `delete(doc_id)` · `list()`.
   Only a genuine SDK failure (connection / timeout / 5xx, caught as
   `anthropic.APIError`) or a "successful" response with no text block at all
   (e.g. `max_tokens` exhausted before any text) raises `LLMServiceError` → 502.
+- **Addendum — delimiters are escaped, not merely trusted
+  (fix/external-audit-hardening, 2026-07-13):** `build_prompt` XML-escapes both
+  the chunk text and the `document_id` attribute before inserting them between
+  the `<chunk>`/`<context>` tags. Without escaping, a document containing a
+  literal `</chunk></context>` could close the delimiters early and place its
+  own text _outside_ the context block — the exact injection channel the
+  delimiters exist to close. Escaping makes the tag structure un-forgeable, so
+  the "context is data, not instructions" rule above becomes a second layer
+  rather than the only one. _Rejected:_ leaning on the system-prompt
+  instruction alone — it asks the model to behave, where escaping removes the
+  ability to misbehave. The mock path answers from the raw top chunk (not the
+  assembled prompt), so keyless behaviour is byte-identical.
+- **Addendum — `.env` is resolved from the file, not the working directory
+  (same branch):** `config.py` anchors `env_file` to
+  `Path(__file__).resolve().parents[1] / ".env"` (i.e. `backend/.env`).
+  pydantic-settings resolves a bare `".env"` against the process working
+  directory, and README documents two equivalent launch directories (repo root
+  and `backend/`); started from the root, a bare path silently missed
+  `backend/.env`, so the key toggle above never saw a configured key and /ask
+  quietly ran the mock. _Rejected:_ documenting a single launch directory —
+  that "fixes" the mismatch by deleting a working option instead of the bug. A
+  missing `.env` is still tolerated (settings fall back to the mock), so this
+  changes only _where_ a present file is found, never whether one is required.
 
 ### D5 — Error handling
 
