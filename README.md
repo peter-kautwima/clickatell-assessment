@@ -156,27 +156,33 @@ paste it into POST /documents (e.g. via the /docs UI) to try the service.
 ## Project structure
 
 ```
-├── README.md · DECISIONS.md · CODE_REVIEW.md   # setup · design record + Part 4 · Part 2 review
-├── ASSESSMENT.md / ASSESSMENT.pdf              # the brief (markdown conversion + original)
-├── pyproject.toml                              # ruff lint/format configuration
-├── examples/sample.md                          # ready-made upload content
+├── README.md            # setup + run guide (this file)
+├── DECISIONS.md         # architecture, every design decision, and Part 4
+├── CODE_REVIEW.md       # Part 2 review of the provided module
+├── CLAUDE.md            # standing instructions given to the AI coding agent
+├── ASSESSMENT.md        # the brief (ASSESSMENT.pdf is the original)
+├── pyproject.toml       # ruff lint/format configuration
+├── examples/
+│   └── sample.md        # ready-made upload content
 ├── backend/
-│   ├── requirements.txt · .env.example · pytest.ini
+│   ├── requirements.txt # dependencies, grouped by the branch that added them
+│   ├── .env.example     # ANTHROPIC_API_KEY placeholder (.env itself is gitignored)
+│   ├── pytest.ini       # pytest config + the evaluation marker
 │   ├── app/
-│   │   ├── main.py            # app factory: routers, exception handlers, startup model warm-up
-│   │   ├── config.py          # env settings; ANTHROPIC_API_KEY present → live LLM, absent → mock
-│   │   ├── errors.py          # domain exceptions + the single JSON error shape
-│   │   ├── routes/            # documents.py, query.py — thin HTTP translation, zero business logic
-│   │   ├── services/          # chunking, embedding, documents, retrieval, answering
-│   │   ├── models/schemas.py  # every Pydantic request/response contract in one place
-│   │   └── storage/           # base.py = VectorStore interface · memory.py = numpy implementation
-│   └── tests/                 # pytest suite + the opt-in evaluation harness
+│   │   ├── main.py      # app factory: routers, exception handlers, model warm-up
+│   │   ├── config.py    # env settings; ANTHROPIC_API_KEY present → live LLM, absent → mock
+│   │   ├── errors.py    # domain exceptions + the single JSON error shape
+│   │   ├── routes/      # documents.py, query.py — thin HTTP translation
+│   │   ├── services/    # chunking, embedding, documents, retrieval, answering
+│   │   ├── models/      # schemas.py — every Pydantic request/response contract
+│   │   └── storage/     # base.py = VectorStore interface, memory.py = numpy impl
+│   └── tests/           # pytest suite + the opt-in evaluation harness
 └── frontend/
-    ├── package.json           # scripts (dev/build/lint) + pinned dependencies
-    ├── vite.config.ts         # dev proxy → backend, so no CORS setup is needed
+    ├── package.json     # scripts (dev/build/lint) + pinned dependencies
+    ├── vite.config.ts   # dev proxy → backend, so no CORS setup is needed
     └── src/
-        ├── api/               # types.ts mirrors the Pydantic schemas 1:1 · client.ts typed fetch wrapper
-        └── components/        # DocumentUpload, DocumentList, QAPanel
+        ├── api/         # types.ts mirrors the Pydantic schemas, client.ts typed fetch
+        └── components/  # DocumentUpload, DocumentList, QAPanel
 ```
 
 The reasoning behind this layout — module responsibilities and every design
