@@ -5,8 +5,18 @@
 > the Part 4 written answers (4.1–4.4). Per the brief: "DECISIONS.md covering
 > Part 4 + architectural choices throughout."
 >
-> **Reference key:** plain file paths (e.g. `services/chunking.py`) point into
-> the repo; D-numbers and §-numbers point to sections of THIS document.
+> **Reference key** — three kinds of pointer appear throughout this document:
+>
+> - **Plain file paths** (e.g. `services/chunking.py`) point at files in the repo.
+> - **§N** points at a numbered section _of this document_, matching its heading:
+>   §1 System Overview · §2 Requirements → Structure Trace · §3 Module Map ·
+>   §4 Part 4 (with subsections §4.1–§4.4). So "§4.1" means the "4.1 Production
+>   readiness" heading further down.
+> - **D1–D10** point at the numbered entries in the Design Decisions section:
+>   D1 Chunking · D2 Embedding model · D3 Vector storage & search · D4 LLM
+>   integration & prompt design · D5 Error handling · D6 Concurrency · D7 Testing ·
+>   D8 /ask threshold & source filtering · D9 Frontend integration · D10 Evaluation
+>   harness.
 >
 > **Status:** the core architecture (D1–D7) was locked in the Thursday design
 > session; D8–D10 record decisions made during the build, same day they were
@@ -44,23 +54,23 @@ is the only stateful component.
 
 | Brief requires (source)                              | Lives at                                                |
 | ---------------------------------------------------- | ------------------------------------------------------- |
-| 6 endpoints (Part 1, endpoint table)                 | `routes/documents.py` (4) + `routes/query.py` (2)       |
+| 6 endpoints (Part 1, endpoint table)                 | `routes/documents.py` (4 endpoints) + `routes/query.py` (2)       |
 | Chunking, justified (tech req 1)                     | `services/chunking.py` + **D1**                         |
 | Open-source local embeddings (tech req 2)            | `services/embedding.py` + **D2**                        |
 | Vector storage + similarity search (tech req 3)      | `storage/base.py` + `storage/memory.py` + **D3**        |
 | LLM integration, mock acceptable (tech req 4)        | `services/answering.py` + `config.py` + **D4**          |
 | Pydantic for ALL bodies (tech req 5)                 | `models/schemas.py` — a mandate, not a decision         |
 | Error handling, proper status codes (tech req 6)     | `errors.py` + handlers in `main.py` + **D5**            |
-| Production structure, not one file (tech req 7)      | module map, §3                                          |
+| Production structure, not one file (tech req 7)      | Module Map section (§3)                                 |
 | RESTful API design + useful docs (eval: API design)  | resource-oriented routes + FastAPI auto-docs at `/docs` |
 | Testing, 90% + report included (eval: Testing)       | `backend/tests/` + **D7**; coverage table in README     |
-| Service architecture (eval)                          | same as tech req 7 — module map, §3                     |
+| Service architecture (eval)                          | same as tech req 7 — Module Map section (§3)            |
 | Code quality (eval)                                  | CLAUDE.md rules 5 (simplicity) + 8 (docstrings/comments) + the ruff pre-commit gate — no single D-number, enforced by rule + tooling |
 | Error handling (eval)                                | same as tech req 6 — `errors.py` + **D5**               |
 | AI/RAG reasoning (eval)                              | chunking (**D1**) + embeddings/similarity (**D2**, **D3**) + prompt design (**D4**) together |
 | Setup instructions, runnable clean clone (checklist) | `README.md`                                             |
 | Frontend's 4 features (Part 3)                       | 3 components + typed `api/client.ts`                    |
-| Part 4 written answers (Part 4)                      | **§§4.1–4.4** below                                     |
+| Part 4 written answers (Part 4)                      | Part 4 below (§4.1–4.4)                                 |
 
 ## 3. Module Map & Responsibilities
 
