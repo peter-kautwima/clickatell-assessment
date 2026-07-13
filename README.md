@@ -60,6 +60,10 @@ source venv/bin/activate              # Windows (PowerShell): venv\Scripts\Activ
 uvicorn app.main:app --reload
 ```
 
+Both options load the same configuration: `backend/.env` is resolved from the
+code's own location, not your current directory, so the optional API key is
+picked up from either starting point.
+
 If port 8000 is busy, add `--port 8001`.
 
 ## Frontend setup
