@@ -43,11 +43,23 @@ https://github.com/user-attachments/assets/25266464-353e-4595-9a0f-957c50cf8077
 
 ## Backend setup
 
+Mac
 ```bash
 cd backend
-python -m venv venv && source venv/bin/activate    # Windows: venv\Scripts\activate
+python3.12 -m venv venv
+source venv/bin/activate
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 cp .env.example .env         # add ANTHROPIC_API_KEY=... for live answers (optional)
+```
+Windows
+```bash
+cd backend
+python3.12 -m venv venv
+python -m pip install --upgrade pip
+python -m venv venv && source venv/bin/activate    # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env         # add ANTHROPIC_API_KEY=... for live answers (optional)
 ```
 
 - **First install is the slow step:** `pip install` pulls PyTorch (several
