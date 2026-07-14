@@ -125,6 +125,14 @@ is the only stateful component.
   review module, and it fails the boundary case above.
 - **Deferred:** semantic chunking (embedding-based boundaries) — cost and
   complexity without assessment payoff; revisited in §4.4.
+- **Scope — only the content is chunked and embedded; the title is metadata.**
+  `services/documents.py` runs `chunk_text` over the document body only, so a
+  question answerable _only_ from the title (e.g. the title is "the man, the
+  myth, the legend" and the body never mentions it) retrieves nothing above the
+  D8 floor and returns the no-relevant-content guardrail. This is the usual
+  split — search the content, label with the title — but it is a real
+  limitation; prepending the title or a short document summary to each chunk
+  before embedding is the contextual-retrieval improvement in §4.4.
 - **Enforcement is word count, not real tokens — a conservative proxy:**
   `chunk_text()` measures the ~180-word target and 256-token ceiling by
   counting words, not running the model's actual tokenizer, so it stays a
@@ -822,9 +830,10 @@ harness, which I built as the bonus (D10) because it turns every other
 improvement into a measured number rather than a guess. With more time, the
 next things I would build are: a persistent pgvector store behind the existing
 `VectorStore` interface, so documents survive a restart and the same code path
-works in production; contextual retrieval, where a short summary of the
-document is prepended to each chunk before embedding so a chunk carries more of
-its surrounding context, graded against that same harness; and streaming the
+works in production; contextual retrieval, where the document's title
+and a short summary are prepended to each chunk before embedding, so a chunk
+carries more of its context and the title becomes searchable (today only the
+body is embedded), graded against that same harness; and streaming the
 /ask answer to the frontend so it appears as it is generated rather than all at
 once. I would also widen the evaluation set to cover paraphrased and
 adversarial questions, not just the known-answer pairs it grades today.
