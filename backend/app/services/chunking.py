@@ -1,15 +1,16 @@
-"""Structure-aware document chunking, per DECISIONS.md D1 (Chunking):
-paragraph-first, merged toward a target size, with overlap-windowed
-splitting as the fallback for oversized paragraphs.
+"""Structure-aware document chunking: paragraph-first, merged toward a target
+size, with overlap-windowed splitting as the fallback for oversized paragraphs.
+
+Chunk size and overlap rationale: DECISIONS.md D1 (Chunking).
 """
 
 from __future__ import annotations
 
 import re
 
-# Word count is used as a proxy for the model's 256-word-piece ceiling: chunk_text
-# stays a pure function with no tokenizer/model dependency (see module map), at the
-# cost of being an approximation — see DECISIONS.md D1 addendum.
+# These are word counts, used as a proxy for the model's 256-token ceiling.
+# Counting words keeps chunking a pure function with no tokenizer dependency,
+# at the cost of being an approximation (~1.3-1.4 tokens per English word).
 TARGET_WORDS = 180
 MAX_CHUNK_WORDS = 256
 OVERLAP_WORDS = 30
@@ -25,7 +26,7 @@ def _split_paragraphs(text: str) -> list[str]:
 def _split_oversized_paragraph(words: list[str]) -> list[str]:
     """Slide a MAX_CHUNK_WORDS window over an oversized paragraph, stepping by
     (MAX_CHUNK_WORDS - OVERLAP_WORDS) so consecutive windows share ~OVERLAP_WORDS
-    words — the only place overlap applies (DECISIONS.md D1 — Chunking).
+    words — the only place overlap applies.
     """
     step = MAX_CHUNK_WORDS - OVERLAP_WORDS
     windows = []

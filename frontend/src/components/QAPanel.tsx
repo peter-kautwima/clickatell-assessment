@@ -4,14 +4,10 @@ import { ApiError, type AskResponse } from "../api/types";
 
 type Status = "idle" | "loading" | "answered" | "error";
 
-// Terminology from NIST TREC graded relevance judgments (trec.nist.gov):
-// highly relevant / relevant / not relevant. "Not relevant" never reaches
-// the UI — the backend's 0.15 similarity floor filters it (DECISIONS.md D8,
-// /ask similarity threshold & source filtering). The 0.45 cutoff is the top
-// of the measured true-answer range, 0.45–0.53 across the D8 calibration
-// and D10 evaluation runs (DECISIONS.md D10, Evaluation harness) — cosine
-// magnitudes aren't comparable across models, so cutoffs are calibrated
-// per corpus, not taken from a universal scale.
+// The 0.45 cutoff is the top of this corpus's measured true-answer range
+// (0.45-0.53). Cosine scores aren't comparable across models, so it's
+// calibrated for this system, not a universal threshold (label design:
+// DECISIONS.md D9; the backend's 0.15 relevance floor is D8).
 function relevanceLabel(score: number): string {
   return score >= 0.45 ? "Highly relevant" : "Relevant";
 }

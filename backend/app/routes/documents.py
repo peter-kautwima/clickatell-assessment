@@ -1,6 +1,5 @@
 """The four /documents endpoints — thin HTTP translation over
-services/documents.py, zero business logic (DECISIONS.md §1 System
-Overview / §3 Module Map & Responsibilities).
+services/documents.py, no business logic.
 """
 
 from __future__ import annotations
@@ -22,12 +21,10 @@ from ..storage.memory import get_store
 
 router = APIRouter()
 
-# Annotated dependency (not a `= Depends(...)` default) so ruff's B008
-# function-call-in-default check stays clean without an exemption.
+# Annotated form (not a `= Depends(...)` default) keeps ruff's B008 check clean.
 StoreDep = Annotated[VectorStore, Depends(get_store)]
 
-# Declared per-route so the auto-docs at /docs show the D5 error contract,
-# not just the happy path (ASSESSMENT.md eval: useful documentation).
+# Declared per route so /docs shows the error responses, not just the happy path.
 _NOT_FOUND = {404: {"model": ErrorResponse, "description": "Unknown document id"}}
 _EMPTY_CONTENT = {
     400: {"model": ErrorResponse, "description": "Empty or whitespace-only content"}
@@ -44,9 +41,9 @@ def _to_meta(document: StoredDocument) -> DocumentMeta:
     )
 
 
-# All four endpoints are plain `def`, not `async def`: upload's embedding is
-# CPU-bound and the rest are pure in-memory work, so FastAPI's threadpool is
-# the right home (CLAUDE.md rule 9 — concurrency / DECISIONS.md D6).
+# All four are plain `def`, not `async def`: upload's embedding is CPU-bound and
+# the rest is in-memory work, so FastAPI runs them in its thread pool
+# (DECISIONS.md D6).
 @router.post(
     "/documents",
     status_code=201,
@@ -65,9 +62,9 @@ def list_documents(store: StoreDep) -> DocumentListResponse:
     return DocumentListResponse(documents=[_to_meta(d) for d in documents])
 
 
-# Path param is named `id` (shadowing the builtin inside these two tiny
-# functions) so /docs renders exactly /documents/{id} — the literal path
-# template in ASSESSMENT.md's endpoint table.
+# The path param is named `id` (shadowing the builtin in these two small
+# functions) so /docs renders the path as /documents/{id}, matching the brief's
+# endpoint table.
 @router.get("/documents/{id}", responses=_NOT_FOUND)
 def get_document(id: str, store: StoreDep) -> DocumentDetail:
     """One document's metadata plus its stored chunks."""

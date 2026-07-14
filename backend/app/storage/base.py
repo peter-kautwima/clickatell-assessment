@@ -1,6 +1,8 @@
-"""The VectorStore interface, per DECISIONS.md D3 (Vector storage & search):
-the seam that lets the in-memory implementation swap for pgvector/ChromaDB
-with no other file changing.
+"""The VectorStore interface: the seam that lets the in-memory implementation
+swap for pgvector or another store with no other file changing.
+
+Storage and similarity-search rationale: DECISIONS.md D3
+(Vector storage & search).
 """
 
 from __future__ import annotations
@@ -12,9 +14,8 @@ from datetime import datetime
 
 @dataclass(frozen=True)
 class StoredDocument:
-    """One document as storage sees it — deliberately a plain dataclass, not
-    the Pydantic schema, so the storage layer stays independent of the HTTP
-    contract (routes map this to models/schemas.py types).
+    """One document as storage sees it — a plain dataclass, not the Pydantic
+    schema, so the storage layer stays independent of the HTTP contract.
     """
 
     id: str
@@ -29,8 +30,9 @@ class StoredDocument:
 
 
 class VectorStore(ABC):
-    """DECISIONS.md D3 interface (plus its addendum: title on add(), get()
-    as a fifth method, uploaded_at stamped by the store at add time).
+    """The storage interface the rest of the app depends on: add() takes the
+    document title and stamps uploaded_at, get() does the single-document
+    lookup, and search() ranks chunks.
     """
 
     @abstractmethod
@@ -41,8 +43,8 @@ class VectorStore(ABC):
         chunks: list[str],
         vectors: list[list[float]],
     ) -> StoredDocument:
-        """Store a document's chunks and their (already unit-normalized,
-        per DECISIONS.md D2 — Embedding model) vectors; return its record.
+        """Store a document's chunks and their (already unit-normalized)
+        vectors; return its record.
         """
 
     @abstractmethod

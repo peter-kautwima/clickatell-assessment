@@ -1,6 +1,7 @@
-"""Question retrieval service: embed once, then delegate ranking to VectorStore.
-It preserves DECISIONS.md D3 (Vector storage & search): no score math or
-normalization here, only the two-call retrieval pipeline.
+"""Question retrieval: embed the question once, then delegate ranking to the
+VectorStore. No score maths or normalization lives here.
+
+Retrieval and the k default: DECISIONS.md D3 (Vector storage & search).
 """
 
 from __future__ import annotations
@@ -9,10 +10,8 @@ from ..errors import EmptyQuestionError
 from ..storage.base import VectorStore
 from .embedding import embed_texts
 
-# Mirrored by QueryRequest.k's schema default in models/schemas.py, which also
-# owns the HTTP-facing 1–10 bounds; this one serves direct callers that skip
-# the schema, e.g. /ask calling retrieve_similar() — DECISIONS.md D3 (Vector
-# storage & search), query endpoint choices.
+# Mirrored by QueryRequest.k's schema default, which also owns the 1-10 HTTP
+# bounds; this default serves direct callers that skip the schema (e.g. /ask).
 DEFAULT_QUERY_K = 5
 
 

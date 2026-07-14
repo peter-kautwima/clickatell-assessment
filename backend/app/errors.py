@@ -1,6 +1,8 @@
-"""Domain exceptions, per DECISIONS.md D5 (Error handling): raised in
-services/storage, translated to HTTP responses by handlers in main.py so
-business logic never imports transport-layer status codes.
+"""Domain exceptions raised by the services and storage layer. Handlers in
+main.py translate them to HTTP responses, so business logic never imports
+transport-layer status codes.
+
+Error-handling design: DECISIONS.md D5 (Error handling).
 """
 
 from __future__ import annotations
@@ -39,8 +41,7 @@ class LLMServiceError(Exception):
     """
 
     def __init__(self, detail: str) -> None:
-        """Carry the upstream failure detail — unlike the fixed-message Empty*
-        errors — so the handler's 502 message is informative, per DECISIONS.md
-        D4 (LLM integration & prompt design).
+        """Carry the upstream failure detail (unlike the fixed-message Empty*
+        errors) so the handler's 502 message is informative.
         """
         super().__init__(f"LLM service error: {detail}")

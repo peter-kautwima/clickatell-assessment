@@ -1,6 +1,7 @@
-"""Local embeddings via sentence-transformers, per DECISIONS.md D2 (Embedding
-model): one model instance shared across calls, encoding chunk text into
-unit-normalized 384-dim vectors.
+"""Local embeddings via sentence-transformers: one shared model instance
+encodes text into unit-normalized 384-dimension vectors.
+
+Model choice rationale: DECISIONS.md D2 (Embedding model).
 """
 
 from __future__ import annotations

@@ -1,6 +1,9 @@
-"""In-memory VectorStore, per DECISIONS.md D3 (Vector storage & search): one
-numpy matrix of unit vectors plus a parallel per-row metadata list, so cosine
-similarity over every chunk is a single matrix @ query dot product.
+"""In-memory VectorStore: one numpy matrix of unit vectors plus a parallel
+per-row metadata list, so scoring every chunk is a single matrix @ query dot
+product.
+
+Storage and similarity-search rationale: DECISIONS.md D3
+(Vector storage & search).
 """
 
 from __future__ import annotations
@@ -14,17 +17,15 @@ from .base import StoredDocument, VectorStore
 
 
 class InMemoryVectorStore(VectorStore):
-    """Exact (brute-force) search — correct and quick at assessment scale,
-    swapped for an ANN-indexed store in production (DECISIONS.md §4.1,
-    Production readiness).
+    """Exact brute-force search — correct and quick at assessment scale; a
+    production store would use an ANN index (see DECISIONS.md section 4.1).
     """
 
     def __init__(self) -> None:
         """Start empty: no vector rows, no documents."""
-        # Vectors arrive already unit-normalized from embed_texts()
-        # (DECISIONS.md D2 — Embedding model) and are stored AS-IS, never
-        # re-normalized — that is what makes the raw dot product equal
-        # cosine similarity at search time (DECISIONS.md D3).
+        # Vectors arrive already unit-normalized from embed_texts() and are
+        # stored as-is, never re-normalized — that is what makes the raw dot
+        # product equal cosine similarity at search time.
         self._matrix: np.ndarray | None = None
         # One (chunk_text, doc_id) entry per matrix row, same order.
         self._rows: list[tuple[str, str]] = []
@@ -40,8 +41,7 @@ class InMemoryVectorStore(VectorStore):
         """Append the document's rows to the matrix and record its metadata.
 
         Assumes chunks is non-empty — the ingestion service raises
-        EmptyDocumentError before ever reaching storage (DECISIONS.md D5 —
-        Error handling).
+        EmptyDocumentError before storage is ever reached.
         """
         document = StoredDocument(
             id=doc_id,
@@ -93,9 +93,8 @@ class InMemoryVectorStore(VectorStore):
         return list(self._documents.values())
 
 
-# Process-wide instance: the store is the service's only stateful component
-# (DECISIONS.md §1, System Overview), so exactly one lives for the app's
-# lifetime.
+# Process-wide instance: the store is the app's only stateful component, so
+# exactly one lives for the app's lifetime.
 _store = InMemoryVectorStore()
 
 

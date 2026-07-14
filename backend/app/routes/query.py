@@ -1,4 +1,4 @@
-"""The /query endpoint — thin HTTP translation over services/retrieval.py."""
+"""The /query and /ask endpoints — thin HTTP translation over the services."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ StoreDep = Annotated[VectorStore, Depends(get_store)]
 _EMPTY_QUESTION = {
     400: {"model": ErrorResponse, "description": "Empty or whitespace-only question"}
 }
-# /ask can also fail upstream at the LLM — surface the D5 502 in the auto-docs.
+# /ask can also fail upstream at the LLM — surface the 502 in the docs too.
 _ASK_ERRORS = {
     **_EMPTY_QUESTION,
     502: {"model": ErrorResponse, "description": "Upstream LLM call failed"},
@@ -45,10 +45,9 @@ def query_documents(payload: QueryRequest, store: StoreDep) -> QueryResponse:
     )
 
 
-# The service's one async endpoint (CLAUDE.md rule 9 — concurrency): the I/O-bound
-# LLM call is awaited on the event loop, while the CPU-bound embed step inside
-# answer_question is dispatched to the threadpool. Zero logic here — delegate and
-# serialize, per DECISIONS.md §1 (System Overview).
+# The one async endpoint: the I/O-bound LLM call is awaited on the event loop,
+# while the CPU-bound embedding step inside answer_question runs in the thread
+# pool (DECISIONS.md D6).
 @router.post("/ask", responses=_ASK_ERRORS)
 async def ask_question(payload: AskRequest, store: StoreDep) -> AskResponse:
     """Answer a question grounded in retrieved chunks; return answer + sources."""

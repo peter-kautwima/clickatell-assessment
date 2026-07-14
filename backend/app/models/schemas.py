@@ -1,5 +1,5 @@
-"""Every Pydantic request/response contract in one place, per ASSESSMENT.md
-tech req 5 (Pydantic models for ALL bodies — error responses included).
+"""Every Pydantic request and response contract in one place, error responses
+included.
 """
 
 from __future__ import annotations
@@ -13,24 +13,20 @@ class DocumentCreate(BaseModel):
     """POST /documents request body: a pasted plain-text/markdown document."""
 
     title: str = Field(min_length=1)
-    # content is deliberately NOT length-constrained here: empty/whitespace-only
-    # text is a semantic error owned by the service (HTTP 400 via
-    # EmptyDocumentError), not a schema-shape error (HTTP 422) — DECISIONS.md
-    # D5 (Error handling) separates those two cases.
+    # content is not length-constrained here: empty/whitespace-only text is a
+    # semantic error the service returns as a 400, not a schema-shape 422
+    # (DECISIONS.md D5).
     content: str
 
 
 class DocumentMeta(BaseModel):
-    """One document's metadata — the exact GET /documents field list the
-    brief requires: id, title, chunk count, upload date.
-    """
+    """One document's metadata: id, title, chunk count, and upload date."""
 
     id: str
     title: str
     chunk_count: int
-    # "uploaded_at" over the more conventional "created_at": our own
-    # clearer-naming choice (the brief says "upload date" in prose but
-    # never dictates a JSON key).
+    # uploaded_at rather than created_at — a clearer name; the brief says
+    # "upload date" in prose but doesn't dictate the JSON key.
     uploaded_at: datetime
 
 
@@ -41,9 +37,10 @@ class DocumentDetail(DocumentMeta):
 
 
 class DocumentListResponse(BaseModel):
-    """GET /documents response — wrapped in an object rather than a bare
-    array so pagination fields can be added without breaking clients
-    (DECISIONS.md §4.1, Production readiness).
+    """GET /documents response.
+
+    Wrapped in an object rather than a bare array so pagination fields can be
+    added later without breaking clients (DECISIONS.md D3).
     """
 
     documents: list[DocumentMeta]
@@ -52,15 +49,11 @@ class DocumentListResponse(BaseModel):
 class QueryRequest(BaseModel):
     """POST /query request body: question plus bounded result count."""
 
-    # question is deliberately NOT length-constrained here, same pattern as
-    # DocumentCreate.content: empty/whitespace-only text is a semantic error
-    # owned by the service (HTTP 400 via EmptyQuestionError), not a
-    # schema-shape error (HTTP 422) — DECISIONS.md D5 (Error handling)
-    # separates those two cases.
+    # Not length-constrained here (same as DocumentCreate.content): an
+    # empty/whitespace question is a semantic 400, not a schema-shape 422.
     question: str
-    # Default mirrors retrieval.DEFAULT_QUERY_K; the 1–10 bounds live only
-    # here, at the HTTP edge — DECISIONS.md D3 (Vector storage & search),
-    # query endpoint choices.
+    # Default mirrors retrieval.DEFAULT_QUERY_K; the 1-10 bounds live only here,
+    # at the HTTP edge (DECISIONS.md D3).
     k: int = Field(default=5, ge=1, le=10)
 
 
@@ -81,23 +74,20 @@ class QueryResponse(BaseModel):
 class AskRequest(BaseModel):
     """POST /ask request body: question plus bounded retrieval count."""
 
-    # question is deliberately NOT length-constrained here, same pattern as
-    # QueryRequest.question: empty/whitespace-only text is a semantic error
-    # owned by the service (HTTP 400 via EmptyQuestionError), not a schema-shape
-    # error (HTTP 422) — DECISIONS.md D5 (Error handling) separates those cases.
+    # Not length-constrained here (same as QueryRequest.question): an
+    # empty/whitespace question is a semantic 400, not a schema-shape 422.
     question: str
-    # Same 1–10 bounds and default as QueryRequest.k: /ask retrieves before it
-    # answers, so it reuses /query's retrieval envelope — DECISIONS.md D3
-    # (Vector storage & search), query endpoint choices.
+    # Same 1-10 bounds and default as QueryRequest.k: /ask retrieves before it
+    # answers, so it reuses /query's retrieval envelope (DECISIONS.md D3).
     k: int = Field(default=5, ge=1, le=10)
 
 
 class AskResponse(BaseModel):
     """POST /ask response: the grounded answer plus the source chunks used.
 
-    Reuses QueryResult so a source carries document_id, chunk, and score —
-    ASSESSMENT.md Part 1 ("return both the answer and the source chunks used").
-    sources is always a list, never null: empty on the guardrail short-circuit.
+    Reuses QueryResult so each source carries its document_id, chunk, and
+    score. sources is always a list, never null — empty when the guardrail
+    short-circuits.
     """
 
     answer: str
@@ -112,8 +102,8 @@ class ErrorDetail(BaseModel):
 
 
 class ErrorResponse(BaseModel):
-    """The single JSON error shape every handler returns, per DECISIONS.md D5
-    (Error handling): {"error": {"code", "message"}}.
+    """The single JSON error shape every handler returns: {"error": {"code",
+    "message"}}.
     """
 
     error: ErrorDetail

@@ -1,5 +1,5 @@
-"""FastAPI app factory: router + exception-handler registration and the
-startup lifespan hook only. No business logic — that lives in services/.
+"""FastAPI app factory: router and exception-handler registration and the
+startup lifespan hook. No business logic — that lives in services/.
 """
 
 import logging
@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-# Use package-relative imports so the app can be run from the `backend/` folder
+# Package-relative imports so the app can be started from the backend/ folder.
 from .errors import (
     DocumentNotFoundError,
     EmptyDocumentError,
@@ -24,14 +24,9 @@ from .services import embedding
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Warm the embedding model at boot instead of on the first real request."""
-    # Module-qualified call (not `from .services.embedding import _get_model`)
-    # so tests' monkeypatched mock is what actually runs here, not a
-    # from-import name bound to the real function at import time
-    # (DECISIONS.md D2 — Embedding model).
-    # The wrapper is async because that's FastAPI's lifespan signature; the
-    # actual load is still a plain, blocking sync call — nothing else is
-    # running yet, so there's no event loop to freeze (CLAUDE.md rule 9 —
-    # concurrency — doesn't apply at startup).
+    # Called module-qualified (not a from-import) so the test mock replaces it
+    # here. The load is a plain blocking call, which is fine at startup — no
+    # requests are being served yet (DECISIONS.md D2).
     embedding._get_model()
     yield
 
@@ -43,17 +38,16 @@ app.include_router(query_router)
 
 
 def _error_json(status_code: int, code: str, message: str) -> JSONResponse:
-    """Serialize the D5 error shape through its Pydantic model, so error
-    bodies are schema-backed like every other response (ASSESSMENT.md tech
-    req 5).
+    """Build the standard JSON error body through its Pydantic model, so errors
+    are schema-backed like every other response.
     """
     body = ErrorResponse(error=ErrorDetail(code=code, message=message))
     return JSONResponse(status_code=status_code, content=body.model_dump())
 
 
-# Handlers live here, not in routes, per DECISIONS.md D5 (Error handling):
-# services raise domain exceptions and stay transport-agnostic; this is the
-# one place that maps them to HTTP.
+# Exception handlers live here, not in the routes: services raise domain
+# exceptions and stay transport-agnostic; this is the single place that maps
+# them to HTTP status codes (DECISIONS.md D5).
 @app.exception_handler(DocumentNotFoundError)
 def handle_document_not_found(
     request: Request, exc: DocumentNotFoundError
@@ -76,7 +70,7 @@ def handle_empty_question(request: Request, exc: EmptyQuestionError) -> JSONResp
 
 @app.exception_handler(LLMServiceError)
 def handle_llm_service_error(request: Request, exc: LLMServiceError) -> JSONResponse:
-    """Upstream LLM failure -> 502, per DECISIONS.md D5 (Error handling).
+    """Upstream LLM failure -> 502.
 
     Registered explicitly: without this, the catch-all Exception handler below
     would swallow it as a 500 and mislabel an upstream outage as our bug.
@@ -86,13 +80,11 @@ def handle_llm_service_error(request: Request, exc: LLMServiceError) -> JSONResp
 
 @app.exception_handler(Exception)
 def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
-    """Anything unhandled -> 500, logged, generic message — DECISIONS.md D5
-    (Error handling): "500 unexpected (logged)".
-    """
-    # exc_info=exc, not logger.exception(): sync handlers run in the
-    # threadpool where sys.exc_info() is empty — the exception must be
-    # passed explicitly to get the stack trace into the log. The client
-    # gets a generic message only; internals never leak into responses.
+    """Anything unhandled -> 500, logged, with a generic client message."""
+    # exc_info=exc, not logger.exception(): sync handlers run in the thread
+    # pool where sys.exc_info() is empty, so the exception must be passed
+    # explicitly to get the stack trace into the log. The client sees only a
+    # generic message — internals never leak into responses.
     logging.getLogger("app").error(
         "Unhandled error on %s %s", request.method, request.url.path, exc_info=exc
     )

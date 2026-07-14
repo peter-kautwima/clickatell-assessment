@@ -1,6 +1,5 @@
-"""Document ingestion and bookkeeping: the service layer the four /documents
-routes delegate to, one function per endpoint (DECISIONS.md §1 — every
-endpoint validates, calls ONE service function, returns a schema).
+"""Document ingestion and the get/list/delete bookkeeping the four /documents
+routes delegate to — one function per endpoint.
 """
 
 from __future__ import annotations
@@ -17,15 +16,15 @@ def ingest_document(title: str, content: str, store: VectorStore) -> StoredDocum
     """The POST /documents pipeline: chunk -> embed -> store.
 
     Raises EmptyDocumentError when chunking yields nothing — one check that
-    covers both empty and whitespace-only content (DECISIONS.md D5 — Error
-    handling: semantic 400, distinct from Pydantic's shape-level 422).
+    covers both empty and whitespace-only content (the semantic 400 in
+    DECISIONS.md D5).
     """
     chunks = chunk_text(content)
     if not chunks:
         raise EmptyDocumentError()
     vectors = embed_texts(chunks)
-    # uuid4 hex: collision-free ids without a counter to synchronize
-    # (the Part 2 review module's global counter is the anti-pattern here).
+    # uuid4 hex: collision-free ids with no counter to synchronise. The global
+    # counter in the Part 2 module was the anti-pattern here.
     return store.add(uuid4().hex, title, chunks, vectors)
 
 
