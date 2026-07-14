@@ -18,6 +18,19 @@ a question, and getting a grounded answer with its source chunks and scores.
 
 https://github.com/user-attachments/assets/25266464-353e-4595-9a0f-957c50cf8077
 
+## Notes for reviewers
+
+- **Following the reasoning from the code.** Where a piece of code embodies a
+  non-obvious design choice, its comment carries a short pointer such as
+  `(DECISIONS.md D4)` to the decision it implements — so you can jump from a
+  line of code straight to the rationale, trade-offs, and rejected alternatives
+  in [DECISIONS.md](DECISIONS.md).
+- **Documents live in memory by design** (see DECISIONS.md, Vector storage &
+  search): a backend restart clears them.
+- The Q&A form stays disabled until at least one document is uploaded; if the
+  backend isn't running, the UI shows a single "can't reach the backend"
+  banner with a retry.
+
 ---
 
 ## Prerequisites
@@ -198,11 +211,3 @@ paste it into POST /documents (e.g. via the /docs UI) to try the service.
 The reasoning behind this layout — module responsibilities and every design
 decision with its trade-offs — lives in [DECISIONS.md](DECISIONS.md)
 (System Overview, Requirements Trace, and Module Map sections).
-
-## Notes for reviewers
-
-- **Documents live in memory by design** (see DECISIONS.md, Vector storage &
-  search): a backend restart clears them.
-- The Q&A form stays disabled until at least one document is uploaded; if the
-  backend isn't running, the UI shows a single "can't reach the backend"
-  banner with a retry.
