@@ -54,12 +54,12 @@ cp .env.example .env         # add ANTHROPIC_API_KEY=... for live answers (optio
 ```
 Windows
 ```bash
+python -m venv backend\venv
 cd backend
-python3.12 -m venv venv
+venv\Scripts\activate  # venv\Scripts\activate.ps1
 python -m pip install --upgrade pip
-python -m venv venv && source venv/bin/activate    # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env         # add ANTHROPIC_API_KEY=... for live answers (optional)
+pip install -r backend\requirements.txt
+cp .env.example .env         # add ANTHROPIC_API_KEY=... for live answers (optional)
 ```
 
 - **First install is the slow step:** `pip install` pulls PyTorch (several
